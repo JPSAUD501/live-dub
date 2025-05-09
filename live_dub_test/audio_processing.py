@@ -175,7 +175,9 @@ def transcribe_segment_elevenlabs_scribe(audio_data: bytes) -> str:
         # file=audio_data and model_id="scribe_v1".
         response = config.elevenlabs_client.speech_to_text.convert(
             file=audio_data,
-            model_id="scribe_v1" # As per the documentation screenshot. Ensure this model is appropriate.
+            model_id="scribe_v1", # As per the documentation screenshot. Ensure this model is appropriate.
+            tag_audio_events=False, # Assuming we don't need to tag audio events for this use case.
+            
         )
 
         transcribed_text = ""
