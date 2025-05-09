@@ -2,22 +2,29 @@ import os
 from openai import AzureOpenAI
 from elevenlabs.client import ElevenLabs
 import pyaudio
-from dotenv import load_dotenv, find_dotenv
 
-# Load environment variables from .env file located in the project root
-# find_dotenv() will search for .env in parent directories from this file's location.
-load_dotenv(find_dotenv())
+# Attempt to import configurations from env.py located in the project root.
+# This assumes that the script is run from the project root (d:\GitHub\live-dub)
+# or that the project root is in PYTHONPATH.
+try:
+    import env
+except ImportError:
+    print("CRITICAL ERROR: env.py not found in project root or not importable. "
+          "Please create env.py with your configurations (e.g., API keys). "
+          "The application cannot continue without it.")
+    raise SystemExit("env.py not found or not importable. Ensure it is in the project root (d:\\GitHub\\live-dub).")
+
 
 # --- Configuration Variables ---
 # Azure OpenAI service
-AZ_OPENAI_ENDPOINT = os.getenv("AZ_OPENAI_ENDPOINT")
-AZ_OPENAI_KEY = os.getenv("AZ_OPENAI_KEY")
+AZ_OPENAI_ENDPOINT = env.AZ_OPENAI_ENDPOINT
+AZ_OPENAI_KEY = env.AZ_OPENAI_KEY
 AZ_OPENAI_API_VERSION = "2024-05-01-preview" # Remains as is, less likely to change frequently
 
 GPT_4O_TRANSCRIBE_DEPLOYMENT_NAME = "gpt-4o-transcribe" # Remains as is
 
 # --- Transcription Provider Configuration ---
-TRANSCRIPTION_PROVIDER = os.getenv("TRANSCRIPTION_PROVIDER", "ELEVENLABS")
+TRANSCRIPTION_PROVIDER = env.TRANSCRIPTION_PROVIDER
 
 # Azure OpenAI Configuração para tradução com gpt-4.1-mini
 AZ_TRANSLATION_MODEL = "gpt-4.1-mini" # Remains as is
@@ -25,18 +32,18 @@ AZ_TRANSLATION_MODEL = "gpt-4.1-mini" # Remains as is
 # OpenAI TTS Configuration
 AZ_TTS_MODEL = "gpt-4o-mini-tts"
 AZ_TTS_VOICE = "echo"
-TTS_OUTPUT_ENABLED = os.getenv("TTS_OUTPUT_ENABLED", "True").lower() == "true"
+TTS_OUTPUT_ENABLED = env.TTS_OUTPUT_ENABLED
 
 # --- TTS Provider Configuration ---
-TTS_PROVIDER = os.getenv("TTS_PROVIDER", "ELEVENLABS")
+TTS_PROVIDER = env.TTS_PROVIDER
 AZ_TTS_OUTPUT_FORMAT = "pcm"
 
 # --- ElevenLabs TTS Configuration ---
-ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
-ELEVENLABS_VOICE_ID = os.getenv("ELEVENLABS_VOICE_ID")
+ELEVENLABS_API_KEY = env.ELEVENLABS_API_KEY
+ELEVENLABS_VOICE_ID = env.ELEVENLABS_VOICE_ID
 ELEVENLABS_MODEL_ID = "eleven_flash_v2_5"
 ELEVENLABS_OUTPUT_FORMAT = "pcm_16000"
-ELEVENLABS_OPTIMIZE_STREAMING_LATENCY = int(os.getenv("ELEVENLABS_OPTIMIZE_STREAMING_LATENCY", "0"))
+ELEVENLABS_OPTIMIZE_STREAMING_LATENCY = env.ELEVENLABS_OPTIMIZE_STREAMING_LATENCY
 
 
 # --- Language Configuration ---
@@ -45,10 +52,10 @@ OUTPUT_LANGUAGE_NAME_FOR_PROMPT = "English"
 GPT_4O_TRANSCRIBE_LANG_CODE = "pt"
 WS_TRANSCRIPTION_LANG_CODE = "pt"
 
-MAX_TRANSLATION_HISTORY_CHARS = int(os.getenv("MAX_TRANSLATION_HISTORY_CHARS", "5000"))
-PRE_ROLL_MS = int(os.getenv("PRE_ROLL_MS", "1000"))
-PERIODIC_TRANSCRIPTION_INTERVAL_S = float(os.getenv("PERIODIC_TRANSCRIPTION_INTERVAL_S", "2.0"))
-PERIODIC_TRANSCRIPTION_OVERLAP_MS = int(os.getenv("PERIODIC_TRANSCRIPTION_OVERLAP_MS", "3000"))
+MAX_TRANSLATION_HISTORY_CHARS = env.MAX_TRANSLATION_HISTORY_CHARS
+PRE_ROLL_MS = env.PRE_ROLL_MS
+PERIODIC_TRANSCRIPTION_INTERVAL_S = env.PERIODIC_TRANSCRIPTION_INTERVAL_S
+PERIODIC_TRANSCRIPTION_OVERLAP_MS = env.PERIODIC_TRANSCRIPTION_OVERLAP_MS
 
 # PyAudio Configuration
 PYAUDIO_RATE = 16000
@@ -57,7 +64,7 @@ PYAUDIO_FORMAT = pyaudio.paInt16
 PYAUDIO_FRAMES_PER_BUFFER = 512
 
 # --- Playback speed control ---
-PLAYBACK_SPEED = float(os.getenv("PLAYBACK_SPEED", "1.0"))
+PLAYBACK_SPEED = env.PLAYBACK_SPEED
 
 # --- Selected audio device indices ---
 PYAUDIO_INPUT_DEVICE_INDEX = None   # set by device_selector

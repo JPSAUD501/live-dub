@@ -1,0 +1,6 @@
+pyaudio
+websocket-client
+pygame
+openai
+elevenlabs
+numpy
