@@ -32,10 +32,10 @@ def generate_audio_elevenlabs_tts(text: str) -> bytes | None:
             optimize_streaming_latency=config.ELEVENLABS_OPTIMIZE_STREAMING_LATENCY, # Added latency optimization
             voice_settings=VoiceSettings(
                 stability=1, # Stability and similarity might affect latency, adjust if needed
-                similarity_boost=0.75,
+                similarity_boost=0.5,
                 style=0,
                 use_speaker_boost=True,
-                speed=0.9 # Speed can also affect latency/quality trade-off
+                speed=1.2
             ),
         )
         audio_bytes = b"".join([chunk for chunk in response_iterator if chunk])

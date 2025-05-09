@@ -27,7 +27,7 @@ def on_ws_open(ws: websocket.WebSocketApp):
                 "type": "server_vad",
                 "threshold": 0.5, # Adjust as needed
                 "prefix_padding_ms": 300, # How much audio before speech starts is included
-                "silence_duration_ms": 1000 # How long silence before speech_stopped
+                "silence_duration_ms": 2000 # How long silence before speech_stopped
             },
             "input_audio_noise_reduction": {"type": "near_field"} # Or "far_field"
         }
@@ -82,7 +82,7 @@ def on_ws_message(ws: websocket.WebSocketApp, message_str: str):
             segment_id = globals.get_next_segment_id() # Get segment ID for the final segment
 
             if final_audio_segment:
-                print(f"🧠 [{config.TRANSCRIPTION_PROVIDER}_TRANSCRIBE_TASK] Segment {segment_id}: Transcribing final segment ({len(final_audio_segment)} bytes)...")
+                # print(f"🧠 [{config.TRANSCRIPTION_PROVIDER}_TRANSCRIBE_TASK] Segment {segment_id}: Transcribing final segment ({len(final_audio_segment)} bytes)...")
                 text_4o_final = transcribe_segment(final_audio_segment)
                 print(f"🧠 [{config.TRANSCRIPTION_PROVIDER}_TRANSCRIBE_RESULT] Segment {segment_id}: Final transcription: \"{text_4o_final}\"")
                 
