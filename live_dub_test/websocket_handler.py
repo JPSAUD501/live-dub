@@ -56,7 +56,7 @@ def on_ws_message(ws: websocket.WebSocketApp, message_str: str):
                 globals.utterance_audio_start_byte_offset = max(0, current_buffer_len - pre_roll_bytes)
             
             actual_pre_roll_duration_s = (len(globals.full_audio_data) - globals.utterance_audio_start_byte_offset) / (config.PYAUDIO_RATE * config.PYAUDIO_SAMPLE_WIDTH * config.PYAUDIO_CHANNELS) if config.PYAUDIO_RATE > 0 else 0
-            print(f"🎤 [WEBSOCKET_EVENT] Pre-roll audio start offset: {globals.utterance_audio_start_byte_offset} (actual pre-roll: {actual_pre_roll_duration_s:.2f}s)")
+            print(f"🎤 [WEBSOCKET_EVENT] Actual pre-roll: {actual_pre_roll_duration_s:.2f}s")
 
 
         elif msg_type == "input_audio_buffer.speech_stopped":
@@ -82,7 +82,7 @@ def on_ws_message(ws: websocket.WebSocketApp, message_str: str):
             segment_id = globals.get_next_segment_id() # Get segment ID for the final segment
 
             if final_audio_segment:
-                # print(f"🧠 [{config.TRANSCRIPTION_PROVIDER}_TRANSCRIBE_TASK] Segment {segment_id}: Transcribing final segment ({len(final_audio_segment)} bytes)...")
+                print(f"🧠 [{config.TRANSCRIPTION_PROVIDER}_TRANSCRIBE_TASK] Segment {segment_id}: Transcribing final audio segment...")
                 text_4o_final = transcribe_segment(final_audio_segment)
                 print(f"🧠 [{config.TRANSCRIPTION_PROVIDER}_TRANSCRIBE_RESULT] Segment {segment_id}: Final transcription: \"{text_4o_final}\"")
                 

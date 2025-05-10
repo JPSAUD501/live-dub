@@ -273,7 +273,7 @@ def pyaudio_callback(in_data, frame_count, time_info, status):
         if globals.ws_app and globals.ws_app.sock and globals.ws_app.sock.connected:
             try:
                 if globals.speech_active.is_set() and not globals.first_audio_packet_sent_this_utterance:
-                    print(f"🎤 [AUDIO_CAPTURE_SEND_WS] Sending first audio packet ({len(in_data)} bytes) to WebSocket for this utterance.")
+                    print(f"🎤 [AUDIO_CAPTURE_SEND_WS] Sending first audio packet to WebSocket for this utterance.")
                     globals.first_audio_packet_sent_this_utterance = True
                 
                 globals.ws_app.send(json.dumps({

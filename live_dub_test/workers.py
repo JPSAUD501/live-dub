@@ -20,7 +20,7 @@ def playback_worker_thread_func():
 
             if segment_id == expected_segment_id:
                 if audio_data_to_play:
-                    print(f"🔊 [PLAYBACK_AUDIO] Playing segment {segment_id} ({len(audio_data_to_play)} bytes).")
+                    print(f"🔊 [PLAYBACK_AUDIO] Playing segment {segment_id}.")
                     play_audio_pygame(audio_data_to_play)
                 else:
                     print(f"🔊 [PLAYBACK_AUDIO] Segment {segment_id} has no audio data. Skipping playback.")
@@ -30,7 +30,7 @@ def playback_worker_thread_func():
                 while expected_segment_id in pending_play_buffer:
                     buffered_audio = pending_play_buffer.pop(expected_segment_id)
                     if buffered_audio:
-                        print(f"🔊 [PLAYBACK_AUDIO] Playing buffered segment {expected_segment_id} ({len(buffered_audio)} bytes).")
+                        print(f"🔊 [PLAYBACK_AUDIO] Playing buffered segment {expected_segment_id}.")
                         play_audio_pygame(buffered_audio)
                     else:
                         print(f"🔊 [PLAYBACK_AUDIO] Buffered segment {expected_segment_id} has no audio data. Skipping playback.")
@@ -57,7 +57,7 @@ def playback_worker_thread_func():
         if seg_id == expected_segment_id:
             buffered_audio = pending_play_buffer.pop(seg_id)
             if buffered_audio:
-                print(f"🔊 [PLAYBACK_AUDIO] Playing buffered segment {seg_id} post-loop ({len(buffered_audio)} bytes).")
+                print(f"🔊 [PLAYBACK_AUDIO] Playing buffered segment {seg_id} post-loop.")
                 play_audio_pygame(buffered_audio)
             else:
                 print(f"🔊 [PLAYBACK_AUDIO] Buffered segment {seg_id} post-loop has no audio. Skipping playback.")
@@ -165,7 +165,7 @@ def periodic_transcription_thread_func():
 
                 if audio_segment_periodic:
                     segment_id = globals.get_next_segment_id()
-                    print(f"\n🧠 [{config.TRANSCRIPTION_PROVIDER}_TRANSCRIBE_TASK] Segment {segment_id}: Periodically transcribing segment ({len(audio_segment_periodic)} bytes)...")
+                    print(f"\n🧠 [{config.TRANSCRIPTION_PROVIDER}_TRANSCRIBE_TASK] Segment {segment_id}: Periodically transcribing audio segment...")
                     text_4o_periodic = transcribe_segment(audio_segment_periodic)
                     print(f"🧠 [{config.TRANSCRIPTION_PROVIDER}_TRANSCRIBE_RESULT] Segment {segment_id}: Periodic transcription: \"{text_4o_periodic}\"")
 
