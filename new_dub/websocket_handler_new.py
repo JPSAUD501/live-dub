@@ -61,10 +61,12 @@ def on_ws_message_new(ws: websocket.WebSocketApp, message_str: str):
                                     config.PYAUDIO_SAMPLE_WIDTH * config.PYAUDIO_CHANNELS)
                 current_buffer_len = len(app_globals.full_audio_data)
                 app_globals.utterance_audio_start_byte_offset = max(0, current_buffer_len - pre_roll_bytes)
+                
+                # Reset last_periodic_scribe_chunk_end_byte_offset to the start of the new utterance
+                app_globals.last_periodic_scribe_chunk_end_byte_offset = app_globals.utterance_audio_start_byte_offset
             
             # Reset periodic scribe tracking for new utterance
             app_globals.last_periodic_scribe_submission_time = app_globals.utterance_start_time_monotonic
-            app_globals.last_periodic_scribe_chunk_end_byte_offset = app_globals.utterance_audio_start_byte_offset
 
         elif msg_type == "input_audio_buffer.speech_stopped":
             speech_duration_s = 0.0
@@ -82,9 +84,10 @@ def on_ws_message_new(ws: websocket.WebSocketApp, message_str: str):
 
             final_audio_segment_pcm = b""
             current_buffer_len = 0
+
             with app_globals.audio_buffer_lock:
                 current_buffer_len = len(app_globals.full_audio_data)
-
+            
             if app_globals.utterance_start_time_monotonic is not None and current_buffer_len > 0:
                 # Calculate the pre-roll for the final segment based on FINAL_SCRIBE_PRE_ROLL_MS
                 final_segment_overlap_bytes = int(config.PYAUDIO_RATE * 
@@ -110,7 +113,10 @@ def on_ws_message_new(ws: websocket.WebSocketApp, message_str: str):
 
             if final_audio_segment_pcm:
                 print(f"🎤 [SCRIBE_FINAL_TASK] Transcribing final audio segment ({len(final_audio_segment_pcm)} bytes).")
-                transcribed_text_final = transcribe_with_scribe(final_audio_segment_pcm)
+                transcribed_text_final = transcribe_with_scribe(
+                    final_audio_segment_pcm, 
+                    is_final_segment=True
+                )
                 
                 is_valid_transcription = False
                 if transcribed_text_final and \

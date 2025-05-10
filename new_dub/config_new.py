@@ -45,10 +45,9 @@ SCRIBE_LANGUAGE_CODE = getattr(project_env, 'SCRIBE_LANGUAGE_CODE', "en")
 TTS_OUTPUT_ENABLED = getattr(project_env, 'TTS_OUTPUT_ENABLED', True)
 
 # --- Scribe Transcription Configuration ---
-PERIODIC_SCRIBE_INTERVAL_S = float(getattr(project_env, 'PERIODIC_SCRIBE_INTERVAL_S', "5.0"))
-_periodic_scribe_pre_roll_percentage = float(getattr(project_env, 'PERIODIC_SCRIBE_PRE_ROLL_PERCENTAGE', "10.0"))
-PERIODIC_SCRIBE_PRE_ROLL_MS = int(PERIODIC_SCRIBE_INTERVAL_S * (_periodic_scribe_pre_roll_percentage / 100.0) * 1000)
-FINAL_SCRIBE_PRE_ROLL_MS = int(getattr(project_env, 'FINAL_SCRIBE_PRE_ROLL_MS', "3000"))
+PERIODIC_SCRIBE_INTERVAL_S = float(getattr(project_env, 'PERIODIC_SCRIBE_INTERVAL_S', "3.0")) # Changed default to 3.0 to match example
+PERIODIC_SCRIBE_INTER_CHUNK_OVERLAP_MS = int(getattr(project_env, 'PERIODIC_SCRIBE_INTER_CHUNK_OVERLAP_MS', "250")) # NEW
+FINAL_SCRIBE_PRE_ROLL_MS = int(getattr(project_env, 'FINAL_SCRIBE_PRE_ROLL_MS', "500")) # Changed default to 500
 
 # --- PyAudio Configuration ---
 PYAUDIO_RATE = 16000
@@ -105,7 +104,8 @@ if ELEVENLABS_API_KEY:
 else:
     print("⚠️ CONFIG WARNING: ElevenLabs API key not set. Scribe services will not be available.")
 
-print(f"CONFIG_NEW: Periodic Scribe Interval: {PERIODIC_SCRIBE_INTERVAL_S}s, Pre-roll: {PERIODIC_SCRIBE_PRE_ROLL_MS}ms")
+print(f"CONFIG_NEW: Periodic Scribe Interval: {PERIODIC_SCRIBE_INTERVAL_S}s")
+print(f"CONFIG_NEW: Periodic Scribe Inter-Chunk Overlap: {PERIODIC_SCRIBE_INTER_CHUNK_OVERLAP_MS}ms") # UPDATED
 print(f"CONFIG_NEW: Final Scribe Pre-roll: {FINAL_SCRIBE_PRE_ROLL_MS}ms")
 print(f"CONFIG_NEW: Translator LLM Model: {AZ_TRANSLATOR_LLM_DEPLOYMENT_NAME}")
 print(f"CONFIG_NEW: Translator LLM Context Window: {LLM_TRANSLATOR_CONTEXT_WINDOW_SIZE} items")

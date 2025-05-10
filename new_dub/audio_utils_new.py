@@ -20,8 +20,8 @@ def _create_wav_in_memory(pcm_data: bytes, rate: int, channels: int, sample_widt
             wf.writeframes(pcm_data)
         return wav_file_stream.getvalue()
 
-def transcribe_with_scribe(audio_data: bytes) -> str:
-    """Transcribe audio using ElevenLabs Scribe"""
+def transcribe_with_scribe(audio_data: bytes, is_final_segment: bool) -> str: # Removed is_first_segment
+    """Transcribe audio using ElevenLabs Scribe with word-level processing."""
     if not config.elevenlabs_client:
         print("⚠️ [SCRIBE] ElevenLabs client not initialized. Skipping transcription.")
         return "[Scribe Error: Client not initialized]"
@@ -29,30 +29,79 @@ def transcribe_with_scribe(audio_data: bytes) -> str:
         return ""
 
     try:
-        # Ensure audio_data is in WAV format
-        if not audio_data.startswith(b'RIFF'):
-            # Raw PCM data needs to be converted to WAV
+        wav_audio_data = audio_data
+        if not audio_data.startswith(b'RIFF'): # Check if already WAV
             wav_audio_data = _create_wav_in_memory(
                 pcm_data=audio_data,
                 rate=config.PYAUDIO_RATE,
                 channels=config.PYAUDIO_CHANNELS,
                 sample_width=config.PYAUDIO_SAMPLE_WIDTH
             )
-        else:
-            # Already WAV format
-            wav_audio_data = audio_data
             
         response = config.elevenlabs_client.speech_to_text.convert(
             file=wav_audio_data,
             model_id=config.ELEVENLABS_SCRIBE_MODEL_ID,
-            tag_audio_events=False,
-            language_code=config.SCRIBE_LANGUAGE_CODE # Add language parameter
+            tag_audio_events=False, # Assuming we don't need to tag audio events
+            language_code=config.SCRIBE_LANGUAGE_CODE
         )
 
-        # Process the response based on ElevenLabs API structure
-        if hasattr(response, 'text') and isinstance(response.text, str):
-            return response.text
-        elif isinstance(response, str):
+        # New logic to process 'words' array
+        if hasattr(response, 'words') and isinstance(response.words, list) and response.words:
+            words_list = response.words
+            
+            # 1. Find the index of the first actual "word" type item
+            first_word_item_index = -1
+            for i, word_obj in enumerate(words_list):
+                if hasattr(word_obj, 'type') and word_obj.type == "word":
+                    first_word_item_index = i
+                    break
+            
+            if first_word_item_index == -1: # No "word" items found
+                return ""
+
+            # 2. Define candidate_words: ALWAYS start from the first word item found in this chunk.
+            # We no longer remove the first word based on any 'is_first_segment' logic.
+            candidate_words = words_list[first_word_item_index:]
+
+            if not candidate_words:
+                return ""
+
+            # 3. Apply end trimming based on is_final_segment
+            final_words_to_process = []
+            if not is_final_segment: # For ANY non-final segment (periodic),
+                                     # remove the last word to prevent cut-offs.
+                last_word_item_index_in_candidate = -1
+                # Search for the last "word" type item in the current candidate_words
+                for i in range(len(candidate_words) - 1, -1, -1):
+                    word_obj = candidate_words[i]
+                    if hasattr(word_obj, 'type') and word_obj.type == "word":
+                        last_word_item_index_in_candidate = i
+                        break
+                
+                if last_word_item_index_in_candidate != -1:
+                    # Keep items *before* the last word found in candidate_words
+                    final_words_to_process = candidate_words[:last_word_item_index_in_candidate]
+                else:
+                    # No "word" items found in candidate_words (e.g. if it only contained punctuation after start)
+                    # or if candidate_words itself became empty after a potential (but now removed) start trim.
+                    # If candidate_words is not empty but has no 'word' type items, this will result in empty.
+                    # If candidate_words was already empty, it remains empty.
+                    final_words_to_process = [] 
+            else: # Final segment of an utterance: keep all candidate words (no end trim of the last word)
+                final_words_to_process = candidate_words
+            
+            if not final_words_to_process:
+                return ""
+            
+            # 4. Join the .text attribute of the remaining items
+            return "".join(word_obj.text for word_obj in final_words_to_process if hasattr(word_obj, 'text'))
+
+        # Fallback to the main 'text' field if 'words' array is not usable or new logic results in empty
+        # (though an empty result from word processing might be intended)
+        elif hasattr(response, 'text') and isinstance(response.text, str):
+            print("ℹ️ [SCRIBE] Processed using 'words' array resulted in empty or 'words' array not suitable, falling back to main 'text' field.")
+            return response.text 
+        elif isinstance(response, str): # Fallback if response is just a string
             return response
         else:
             try:

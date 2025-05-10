@@ -8,7 +8,7 @@ from .llm_utils_new import llm_translate_and_decide_speech
 
 def periodic_scribe_transcription_worker_new():
     """Worker thread that periodically sends audio chunks to Scribe for transcription"""
-    print(f"⏱️ [SCRIBE_PERIODIC] Worker: Started. Interval: {config.PERIODIC_SCRIBE_INTERVAL_S}s, Pre-roll: {config.PERIODIC_SCRIBE_PRE_ROLL_MS}ms.")
+    print(f"⏱️ [SCRIBE_PERIODIC] Worker: Started. Interval: {config.PERIODIC_SCRIBE_INTERVAL_S}s, Inter-Chunk Overlap: {config.PERIODIC_SCRIBE_INTER_CHUNK_OVERLAP_MS}ms.")
     last_debug_time = time.monotonic()
     
     while not app_globals.done.is_set():
@@ -24,35 +24,42 @@ def periodic_scribe_transcription_worker_new():
                 
                 print(f"⏱️ [SCRIBE_PERIODIC_TIME] Time to transcribe! Last transcription was {current_time - app_globals.last_periodic_scribe_submission_time:.2f}s ago")
                 
-                audio_segment_pcm_periodic = b""
-                current_chunk_start_byte = 0
-                current_chunk_end_byte = 0
-                
+                audio_segment_periodic = b""
+                start_byte_this_chunk = 0
+                end_byte_current_chunk = 0
+
                 with app_globals.audio_buffer_lock:
                     current_buffer_len = len(app_globals.full_audio_data)
-                    pre_roll_bytes = int(config.PYAUDIO_RATE * (config.PERIODIC_SCRIBE_PRE_ROLL_MS / 1000) * \
-                                        config.PYAUDIO_SAMPLE_WIDTH * config.PYAUDIO_CHANNELS)
                     
-                    # Use last offset as reference, but ensure we get at least the specified pre-roll
+                    inter_chunk_overlap_bytes = int(config.PYAUDIO_RATE * 
+                                                     (config.PERIODIC_SCRIBE_INTER_CHUNK_OVERLAP_MS / 1000) * 
+                                                     config.PYAUDIO_SAMPLE_WIDTH * config.PYAUDIO_CHANNELS)
+                    
+                    # Determine the start byte for the current periodic segment
+                    # If it's the first segment of the utterance, it starts at utterance_audio_start_byte_offset.
+                    # Otherwise, it starts 'inter_chunk_overlap_bytes' before the end of the previous segment.
                     start_byte = max(app_globals.utterance_audio_start_byte_offset,
-                                    app_globals.last_periodic_scribe_chunk_end_byte_offset - pre_roll_bytes)
+                                     app_globals.last_periodic_scribe_chunk_end_byte_offset - inter_chunk_overlap_bytes)
                     
                     # Ensure we don't exceed buffer length
                     start_byte = min(start_byte, current_buffer_len)
                     end_byte = current_buffer_len
 
                     if start_byte < end_byte and end_byte > 0:
-                        audio_segment_pcm_periodic = app_globals.full_audio_data[start_byte:end_byte]
-                        current_chunk_start_byte = start_byte
-                        current_chunk_end_byte = end_byte
+                        audio_segment_periodic = app_globals.full_audio_data[start_byte:end_byte]
+                        start_byte_this_chunk = start_byte
+                        end_byte_current_chunk = end_byte
                         app_globals.last_periodic_scribe_chunk_end_byte_offset = end_byte  # Update immediately
                     else:
                         print(f"⚠️ [SCRIBE_PERIODIC_ERROR] Invalid byte range: {start_byte} to {end_byte}")
 
                 app_globals.last_periodic_scribe_submission_time = current_time  # Update submission time
 
-                if audio_segment_pcm_periodic:
-                    transcribed_text_periodic = transcribe_with_scribe(audio_segment_pcm_periodic)
+                if audio_segment_periodic:
+                    transcribed_text_periodic = transcribe_with_scribe(
+                        audio_segment_periodic, 
+                        is_final_segment=False
+                    )
                     
                     is_valid_transcription = False
                     if transcribed_text_periodic and \
