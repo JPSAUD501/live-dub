@@ -23,6 +23,8 @@ AZ_TRANSLATOR_LLM_DEPLOYMENT_NAME = getattr(project_env, 'AZ_TRANSLATOR_LLM_DEPL
 ELEVENLABS_API_KEY = getattr(project_env, 'ELEVENLABS_API_KEY', None)
 ELEVENLABS_VOICE_ID = getattr(project_env, 'ELEVENLABS_VOICE_ID', None)
 ELEVENLABS_SCRIBE_MODEL_ID = "scribe_v1"
+ELEVENLABS_MODEL_ID = "eleven_flash_v2_5" # Model for TTS
+ELEVENLABS_OUTPUT_FORMAT = "pcm_16000" # Explicitly request PCM at 16kHz
 
 # --- WebSocket Configuration (Azure Speech Service for VAD) ---
 WS_API_VERSION_REALTIME = "2025-04-01-preview"
@@ -37,7 +39,7 @@ else:
 # --- Language Configuration (for prompts, etc.) ---
 INPUT_LANGUAGE_NAME_FOR_PROMPT = getattr(project_env, 'INPUT_LANGUAGE_NAME_FOR_PROMPT', "English")
 OUTPUT_LANGUAGE_NAME_FOR_PROMPT = getattr(project_env, 'OUTPUT_LANGUAGE_NAME_FOR_PROMPT', "Portuguese")
-WS_TRANSCRIPTION_LANG_CODE = getattr(project_env, 'WS_TRANSCRIPTION_LANG_CODE', "en-US")
+SCRIBE_LANGUAGE_CODE = getattr(project_env, 'SCRIBE_LANGUAGE_CODE', "en")
 
 # --- TTS Configuration ---
 TTS_OUTPUT_ENABLED = getattr(project_env, 'TTS_OUTPUT_ENABLED', True)
@@ -54,6 +56,7 @@ PYAUDIO_CHANNELS = 1
 PYAUDIO_FORMAT = pyaudio.paInt16
 PYAUDIO_FRAMES_PER_BUFFER = 1024
 PYAUDIO_INPUT_DEVICE_INDEX = None  # Will be set by device selector
+PYAUDIO_OUTPUT_DEVICE_NAME = None # Will be set by device selector for Pygame
 
 _p_audio_temp_instance = None
 try:

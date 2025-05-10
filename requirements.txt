@@ -1,6 +1,6 @@
+openai
+elevenlabs
 pyaudio
 websocket-client
 pygame
-openai
-elevenlabs
 numpy

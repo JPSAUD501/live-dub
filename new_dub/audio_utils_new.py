@@ -4,6 +4,8 @@ import io
 import wave
 import pyaudio # For pyaudio.paContinue
 import websocket # For WebSocketConnectionClosedException type hint
+from elevenlabs import VoiceSettings
+import numpy as np # For audio data manipulation
 
 from . import config_new as config
 from . import globals_new as app_globals
@@ -43,7 +45,8 @@ def transcribe_with_scribe(audio_data: bytes) -> str:
         response = config.elevenlabs_client.speech_to_text.convert(
             file=wav_audio_data,
             model_id=config.ELEVENLABS_SCRIBE_MODEL_ID,
-            tag_audio_events=False
+            tag_audio_events=False,
+            language_code=config.SCRIBE_LANGUAGE_CODE # Add language parameter
         )
 
         # Process the response based on ElevenLabs API structure
@@ -87,3 +90,124 @@ def pyaudio_callback_new(in_data, frame_count, time_info, status):
                 pass  # Avoid spamming logs for minor send errors
 
     return (None, pyaudio.paContinue)
+
+def generate_audio_elevenlabs(text: str, segment_id: int) -> bytes | None:
+    """Generate audio using ElevenLabs TTS."""
+    if not config.elevenlabs_client:
+        print(f"⚠️ [TTS_WORKER_EL ({segment_id})] ElevenLabs client not initialized.")
+        return None
+    if not config.ELEVENLABS_VOICE_ID:
+        print(f"⚠️ [TTS_WORKER_EL ({segment_id})] ElevenLabs Voice ID not configured.")
+        return None
+    if not text or not text.strip():
+        print(f"ℹ️ [TTS_WORKER_EL ({segment_id})] No text to synthesize.")
+        return None
+
+    try:
+        print(f"🎤 [TTS_WORKER_EL ({segment_id})] Synthesizing: \"{text[:50]}...\"")
+        audio_stream = config.elevenlabs_client.text_to_speech.convert(
+            voice_id=config.ELEVENLABS_VOICE_ID,
+            text=text,
+            model_id=config.ELEVENLABS_MODEL_ID,
+            output_format=config.ELEVENLABS_OUTPUT_FORMAT, # Use configured output format
+            voice_settings=VoiceSettings(
+                stability=0.7,
+                similarity_boost=0.7,
+                style=0.0, # Adjust if style exaggeration is needed
+                use_speaker_boost=True,
+                speed=1.1 # Slightly faster for real-time feel
+            )
+        )
+        
+        audio_bytes = b"".join([chunk for chunk in audio_stream])
+        print(f"🎧 [TTS_WORKER_EL ({segment_id})] Audio generated ({len(audio_bytes)} bytes).")
+        return audio_bytes
+    except Exception as e:
+        print(f"⚠️ [TTS_WORKER_EL ({segment_id})] Error generating audio: {e}")
+        return None
+
+def play_audio_pygame(audio_bytes: bytes, segment_id: int):
+    """Play audio bytes using Pygame mixer."""
+    if not app_globals.pygame_mixer_initialized.is_set():
+        print(f"⚠️ [PLAYBACK_WORKER ({segment_id})] Pygame mixer not initialized. Cannot play audio.")
+        return
+    if not audio_bytes:
+        print(f"ℹ️ [PLAYBACK_WORKER ({segment_id})] No audio data to play.")
+        return
+
+    try:
+        print(f"🔊 [PLAYBACK_WORKER ({segment_id})] Playing audio ({len(audio_bytes)} bytes)...")
+
+        processed_audio_bytes = audio_bytes
+        source_audio_rate = config.PYAUDIO_RATE # Expected to be 16000 for TTS
+        source_audio_channels = 1 # TTS output is mono
+        # Assuming 16-bit PCM from TTS (config.ELEVENLABS_OUTPUT_FORMAT = "pcm_16000")
+        # Pygame size -16 means signed 16-bit. np.int16 is signed 16-bit.
+        source_dtype = np.int16 
+        
+        if app_globals.pygame.mixer.get_init():
+            actual_mixer_freq, actual_mixer_format_bitsize, actual_mixer_channels = app_globals.pygame.mixer.get_init()
+            
+            # Convert raw bytes to numpy array based on source format
+            current_samples = np.frombuffer(processed_audio_bytes, dtype=source_dtype)
+
+            # 1. Channel Conversion (if necessary)
+            if actual_mixer_channels == 2 and source_audio_channels == 1:
+                current_samples = np.repeat(current_samples, 2) # Duplicate samples for L and R
+                # After this, current_samples is stereo, matching actual_mixer_channels
+            elif actual_mixer_channels == 1 and source_audio_channels == 2:
+                 print(f"⚠️ [PLAYBACK_WORKER ({segment_id})] Mixer is mono, audio is stereo. This might not play correctly. Playing as is (first channel if samples are interleaved).")
+                 # Potentially take only one channel: current_samples = current_samples[::2] or current_samples[1::2]
+            elif actual_mixer_channels != source_audio_channels:
+                 print(f"⚠️ [PLAYBACK_WORKER ({segment_id})] Channel mismatch: Mixer {actual_mixer_channels}ch, Source {source_audio_channels}ch. Playing as is.")
+
+            # 2. Resampling (if necessary)
+            if actual_mixer_freq != source_audio_rate:
+                num_source_samples = len(current_samples)
+                if actual_mixer_channels == 2 and source_audio_channels == 1: # if we converted mono to stereo
+                    num_source_samples //= 2 # number of frames
+
+                # Calculate new number of samples for the target frequency
+                num_target_samples = int(round(num_source_samples * actual_mixer_freq / source_audio_rate))
+                
+                resampled_audio_list = []
+
+                if (actual_mixer_channels == 2 and source_audio_channels == 1) or \
+                   (actual_mixer_channels == 2 and source_audio_channels == 2): # Stereo processing
+                    # Separate channels if stereo, resample, then interleave
+                    # current_samples would be stereo here if converted or if source was stereo
+                    left_channel = current_samples[0::2]
+                    right_channel = current_samples[1::2]
+                    
+                    x_source = np.linspace(0, 1, len(left_channel))
+                    x_target = np.linspace(0, 1, num_target_samples)
+                    
+                    resampled_left = np.interp(x_target, x_source, left_channel)
+                    resampled_right = np.interp(x_target, x_source, right_channel)
+                    
+                    # Interleave L and R channels
+                    resampled_stereo = np.empty(num_target_samples * 2, dtype=source_dtype)
+                    resampled_stereo[0::2] = resampled_left
+                    resampled_stereo[1::2] = resampled_right
+                    current_samples = resampled_stereo.astype(source_dtype)
+
+                elif actual_mixer_channels == 1: # Mono processing
+                    x_source = np.linspace(0, 1, num_source_samples) # num_source_samples is correct here
+                    x_target = np.linspace(0, 1, num_target_samples)
+                    current_samples = np.interp(x_target, x_source, current_samples).astype(source_dtype)
+                
+                else: # Should not happen if previous channel logic is correct
+                    print(f"⚠️ [PLAYBACK_WORKER ({segment_id})] Unexpected channel configuration for resampling. Skipping resampling.")
+
+            processed_audio_bytes = current_samples.tobytes()
+
+        sound = app_globals.pygame.mixer.Sound(buffer=processed_audio_bytes)
+        channel = sound.play()
+        if channel:
+            while channel.get_busy():
+                app_globals.pygame.time.Clock().tick(10) # Keep alive, prevent busy loop
+        else:
+            print(f"⚠️ [PLAYBACK_WORKER ({segment_id})] Could not get a channel to play audio.")
+        print(f"✅ [PLAYBACK_WORKER ({segment_id})] Playback finished.")
+    except Exception as e:
+        print(f"⚠️ [PLAYBACK_WORKER ({segment_id})] Error playing audio: {e}")

@@ -18,6 +18,7 @@ def on_ws_open_new(ws: websocket.WebSocketApp):
     app_globals.last_periodic_scribe_submission_time = 0.0
     app_globals.last_periodic_scribe_chunk_end_byte_offset = 0
     app_globals.speech_active.clear()
+    app_globals.final_transcription_pending_for_current_utterance.clear()
 
     with app_globals.audio_buffer_lock:
         app_globals.full_audio_data.clear()  # Clear audio buffer for new session
@@ -51,6 +52,7 @@ def on_ws_message_new(ws: websocket.WebSocketApp, message_str: str):
         if msg_type == "input_audio_buffer.speech_started":
             print("\n🟢 [WS_VAD_EVENT] Speech Started")
             app_globals.speech_active.set()
+            app_globals.final_transcription_pending_for_current_utterance.set()
             app_globals.utterance_start_time_monotonic = time.monotonic()
             
             with app_globals.audio_buffer_lock:
@@ -64,70 +66,74 @@ def on_ws_message_new(ws: websocket.WebSocketApp, message_str: str):
             app_globals.last_periodic_scribe_submission_time = app_globals.utterance_start_time_monotonic
             app_globals.last_periodic_scribe_chunk_end_byte_offset = app_globals.utterance_audio_start_byte_offset
 
-            bytes_of_preroll = len(app_globals.full_audio_data) - app_globals.utterance_audio_start_byte_offset
-            actual_pre_roll_ms = (bytes_of_preroll / 
-                                 (config.PYAUDIO_RATE * config.PYAUDIO_SAMPLE_WIDTH * config.PYAUDIO_CHANNELS)) * 1000
-            
-            # Removed the "Actual pre-roll" log message
-
         elif msg_type == "input_audio_buffer.speech_stopped":
-            print("\n🔴 [WS_VAD_EVENT] Speech Stopped")
-            
-            # Get the duration of this speech segment
+            speech_duration_s = 0.0
             if app_globals.utterance_start_time_monotonic is not None:
-                speech_duration = time.monotonic() - app_globals.utterance_start_time_monotonic
-                print(f"🔴 [WS_VAD_EVENT] Speech duration: {speech_duration:.2f} seconds")
+                speech_duration_s = time.monotonic() - app_globals.utterance_start_time_monotonic
+            print(f"\n🔴 [WS_VAD_EVENT] Speech Stopped (Duration: {speech_duration_s:.2f}s)")
             
-            # Clear the flag AFTER we extract audio to ensure we capture everything
+            if not app_globals.final_transcription_pending_for_current_utterance.is_set():
+                print("ℹ️ [SCRIBE_FINAL_TASK] Final transcription for this utterance already processed or not pending. Skipping.")
+                app_globals.speech_active.clear()
+                return
+
+            app_globals.final_transcription_pending_for_current_utterance.clear()
+            app_globals.speech_active.clear()
+
+            final_audio_segment_pcm = b""
             current_buffer_len = 0
             with app_globals.audio_buffer_lock:
                 current_buffer_len = len(app_globals.full_audio_data)
-            
-            final_audio_segment_pcm = b""
-            if app_globals.utterance_start_time_monotonic is not None:
-                with app_globals.audio_buffer_lock:
-                    final_pre_roll_bytes = int(config.PYAUDIO_RATE * (config.FINAL_SCRIBE_PRE_ROLL_MS / 1000) * 
-                                              config.PYAUDIO_SAMPLE_WIDTH * config.PYAUDIO_CHANNELS)
-                    
-                    # Get the earliest possible start_byte: either from utterance start or using pre-roll
-                    start_byte_final = max(app_globals.utterance_audio_start_byte_offset, 
-                                          current_buffer_len - final_pre_roll_bytes)
-                    start_byte_final = min(start_byte_final, current_buffer_len)  # Safety check
 
-                    if start_byte_final < current_buffer_len and current_buffer_len > 0:
-                        final_audio_segment_pcm = app_globals.full_audio_data[start_byte_final:current_buffer_len]
-                        print(f"🎤 [SCRIBE_FINAL_TASK] Extracted final audio for Scribe.")
-                    else:
-                        print("⚠️ [SCRIBE_FINAL_TASK] No audio data for final Scribe transcription.")
-            else:
-                print("⚠️ [SCRIBE_FINAL_TASK] Speech stopped but no VAD start time recorded.")
-            
-            # Now clear the speech active flag
-            app_globals.speech_active.clear()
+            if app_globals.utterance_start_time_monotonic is not None and current_buffer_len > 0:
+                # Calculate the pre-roll for the final segment based on FINAL_SCRIBE_PRE_ROLL_MS
+                final_segment_overlap_bytes = int(config.PYAUDIO_RATE * 
+                                                  (config.FINAL_SCRIBE_PRE_ROLL_MS / 1000) *
+                                                  config.PYAUDIO_SAMPLE_WIDTH * 
+                                                  config.PYAUDIO_CHANNELS)
+
+                # Determine the start byte for the final transcription segment
+                start_byte_final = max(
+                    app_globals.utterance_audio_start_byte_offset, 
+                    app_globals.last_periodic_scribe_chunk_end_byte_offset - final_segment_overlap_bytes
+                )
+                start_byte_final = max(0, start_byte_final)
+                start_byte_final = min(start_byte_final, current_buffer_len)
+
+                if start_byte_final < current_buffer_len:
+                    with app_globals.audio_buffer_lock:
+                        final_audio_segment_pcm = app_globals.full_audio_data[start_byte_final : current_buffer_len]
+                else:
+                    if app_globals.last_periodic_scribe_chunk_end_byte_offset == app_globals.utterance_audio_start_byte_offset:
+                        with app_globals.audio_buffer_lock:
+                            final_audio_segment_pcm = app_globals.full_audio_data[app_globals.utterance_audio_start_byte_offset : current_buffer_len]
 
             if final_audio_segment_pcm:
-                print(f"🎤 [SCRIBE_FINAL_TRANSCRIBE] Transcribing final audio segment.")
+                print(f"🎤 [SCRIBE_FINAL_TASK] Transcribing final audio segment ({len(final_audio_segment_pcm)} bytes).")
                 transcribed_text_final = transcribe_with_scribe(final_audio_segment_pcm)
                 
-                if transcribed_text_final and not transcribed_text_final.startswith("[Scribe Error:"):
+                is_valid_transcription = False
+                if transcribed_text_final and \
+                   not transcribed_text_final.startswith("[Scribe Error:") and \
+                   "\uFFFD" not in transcribed_text_final:
+                    is_valid_transcription = True
+                    if config.SCRIBE_LANGUAGE_CODE == "pt" and len(transcribed_text_final) < 5 and not any(c.isalpha() for c in transcribed_text_final):
+                        is_valid_transcription = False
+
+                if is_valid_transcription:
                     print(f"🎤 [SCRIBE_FINAL_RESULT] Final transcription: \"{transcribed_text_final}\"")
-                    
-                    # Put into the queue for the LLM Translator Agent
                     app_globals.scribe_to_translator_llm_queue.put(transcribed_text_final)
-                    
-                    # Store in recent transcriptions list
                     with app_globals.recent_scribe_transcriptions_lock:
                         app_globals.recent_scribe_transcriptions.append(transcribed_text_final)
-                    
                     if app_globals.all_scribe_transcriptions_log is not None:
                         app_globals.all_scribe_transcriptions_log.append(f"[FINAL] {transcribed_text_final}")
                 else:
-                    print(f"⚠️ [SCRIBE_FINAL_RESULT] Error or empty transcription: {transcribed_text_final}")
+                    print(f"⚠️ [SCRIBE_FINAL_RESULT] Invalid or empty final transcription: \"{transcribed_text_final}\". Not queueing for LLM.")
             else:
                 print("ℹ️ [SCRIBE_FINAL_TASK] No audio segment captured for final Scribe transcription.")
 
-            # Reset for next utterance
             app_globals.utterance_start_time_monotonic = None
+            app_globals.utterance_audio_start_byte_offset = 0
 
         elif msg_type == "transcription_session.started":
             print(f"ℹ️ [WEBSOCKET_EVENT] Session Started: ID {data.get('session', {}).get('id')}")
