@@ -1,7 +1,7 @@
-openai
-elevenlabs
-pyaudio
-websocket-client
-pygame
-numpy
-customtkinter
+openai>=1.3.0
+elevenlabs>=0.2.26
+pyaudio>=0.2.13
+websocket-client>=1.6.0
+pygame>=2.5.0
+numpy>=1.24.0
+customtkinter>=5.2.0
