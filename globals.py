@@ -5,7 +5,7 @@ from collections import deque
 import pygame  # For pygame types and mixer
 import os  # For environment variable manipulation
 
-from . import config_new as config  # Add this import
+import config as config  # Add this import
 
 # --- Application Control ---
 done = threading.Event()  # Controls main loop and signals threads to stop

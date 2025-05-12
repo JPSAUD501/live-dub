@@ -1,7 +1,7 @@
 import json
 from typing import List, Dict, Any
 
-from . import config_new as config
+import config as config
 
 def llm_translate_and_decide_speech(
     recent_scribe_fragments: List[str],

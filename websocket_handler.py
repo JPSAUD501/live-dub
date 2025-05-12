@@ -3,9 +3,9 @@ import time
 import queue
 import websocket  # For WebSocketApp type hint
 
-from . import config_new as config
-from . import globals_new as app_globals
-from .audio_utils_new import transcribe_with_scribe
+import config as config
+import globals as app_globals
+from audio_utils import transcribe_with_scribe
 
 def on_ws_open_new(ws: websocket.WebSocketApp):
     """Handler for when the WebSocket connection opens"""

@@ -7,8 +7,8 @@ import websocket # For WebSocketConnectionClosedException type hint
 from elevenlabs import VoiceSettings
 import numpy as np # For audio data manipulation
 
-from . import config_new as config
-from . import globals_new as app_globals
+import config as config
+import globals as app_globals
 
 def _create_wav_in_memory(pcm_data: bytes, rate: int, channels: int, sample_width: int) -> bytes:
     """Convert raw PCM data to WAV format in memory"""

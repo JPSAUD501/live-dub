@@ -1,17 +1,14 @@
 import pyaudio
 from openai import AzureOpenAI
 from elevenlabs.client import ElevenLabs
-import os
-import sys
 
 try:
-    # Import env.py from the current package (new_dub)
-    from . import env as project_env
+    import env as project_env
 except ImportError:
-    print("CRITICAL ERROR: new_dub/env.py not found or not importable. "
-          "Please ensure new_dub/env.py exists with your configurations. "
+    print("CRITICAL ERROR: env.py not found or not importable. "
+          "Please ensure env.py exists with your configurations. "
           "The application cannot continue without it.")
-    raise SystemExit("new_dub/env.py not found or not importable.")
+    raise SystemExit("env.py not found or not importable.")
 
 # --- Azure OpenAI Service ---
 AZ_OPENAI_ENDPOINT = getattr(project_env, 'AZ_OPENAI_ENDPOINT', None)

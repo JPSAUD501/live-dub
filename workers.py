@@ -1,10 +1,10 @@
 import time
 import queue  # For queue.Empty
 
-from . import config_new as config
-from . import globals_new as app_globals
-from .audio_utils_new import transcribe_with_scribe, generate_audio_elevenlabs, play_audio_pygame
-from .llm_utils_new import llm_translate_and_decide_speech
+import config as config
+import globals as app_globals
+from audio_utils import transcribe_with_scribe, generate_audio_elevenlabs, play_audio_pygame
+from llm_utils import llm_translate_and_decide_speech
 
 def periodic_scribe_transcription_worker_new():
     """Worker thread that periodically sends audio chunks to Scribe for transcription"""
