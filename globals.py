@@ -173,3 +173,28 @@ def initialize_pygame_mixer_if_needed():
 
 # --- For logging/debugging ---
 all_scribe_transcriptions_log = []  # Optional: to store all raw Scribe outputs for debugging
+
+# --- GUI Interaction ---
+gui_app_instance = None  # Will hold the customtkinter.CTk() instance
+
+def schedule_gui_update(update_type: str, data: any):
+    """Schedules a GUI update on the main GUI thread."""
+    if gui_app_instance:
+        try:
+            if update_type == "speaking_status":
+                # data is a boolean: True if speaking, False if not
+                gui_app_instance.after(0, lambda d=data: gui_app_instance.update_speaking_status(d))
+            elif update_type == "transcription":
+                # data is a string: the transcribed text
+                gui_app_instance.after(0, lambda d=data: gui_app_instance.update_transcription(d))
+            elif update_type == "translation":
+                # data is a string: the translated text to be spoken
+                gui_app_instance.after(0, lambda d=data: gui_app_instance.update_translation(d))
+            elif update_type == "speaking_status_text":
+                # data is a string: a custom status text
+                gui_app_instance.after(0, lambda d=data: gui_app_instance.speaking_status_var.set(d))
+        except Exception as e:
+            # This can happen if the GUI is closing
+            print(f"Error scheduling GUI update ({update_type}): {e}")
+    # else:
+    #    print(f"Debug: schedule_gui_update called but gui_app_instance is None. Type: {update_type}")

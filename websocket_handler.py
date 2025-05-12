@@ -52,6 +52,7 @@ def on_ws_message_new(ws: websocket.WebSocketApp, message_str: str):
         if msg_type == "input_audio_buffer.speech_started":
             print("\n🟢 [WS_VAD_EVENT] Speech Started")
             app_globals.speech_active.set()
+            app_globals.schedule_gui_update("speaking_status", True)  # GUI Update
             app_globals.final_transcription_pending_for_current_utterance.set()
             app_globals.utterance_start_time_monotonic = time.monotonic()
             
@@ -74,6 +75,8 @@ def on_ws_message_new(ws: websocket.WebSocketApp, message_str: str):
                 speech_duration_s = time.monotonic() - app_globals.utterance_start_time_monotonic
             print(f"\n🔴 [WS_VAD_EVENT] Speech Stopped (Duration: {speech_duration_s:.2f}s)")
             
+            app_globals.schedule_gui_update("speaking_status", False)  # GUI Update
+
             if not app_globals.final_transcription_pending_for_current_utterance.is_set():
                 print("ℹ️ [SCRIBE_FINAL_TASK] Final transcription for this utterance already processed or not pending. Skipping.")
                 app_globals.speech_active.clear()
@@ -129,6 +132,7 @@ def on_ws_message_new(ws: websocket.WebSocketApp, message_str: str):
                 if is_valid_transcription:
                     print(f"🎤 [SCRIBE_FINAL_RESULT] Final transcription: \"{transcribed_text_final}\"")
                     app_globals.scribe_to_translator_llm_queue.put(transcribed_text_final)
+                    app_globals.schedule_gui_update("transcription", f"[Final] {transcribed_text_final}")  # GUI Update
                     with app_globals.recent_scribe_transcriptions_lock:
                         app_globals.recent_scribe_transcriptions.append(transcribed_text_final)
                     if app_globals.all_scribe_transcriptions_log is not None:

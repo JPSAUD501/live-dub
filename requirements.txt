@@ -4,3 +4,4 @@ pyaudio
 websocket-client
 pygame
 numpy
+customtkinter

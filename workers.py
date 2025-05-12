@@ -72,6 +72,7 @@ def periodic_scribe_transcription_worker_new():
                     if is_valid_transcription:
                         print(f"⏱️ [SCRIBE_PERIODIC_RESULT] Transcription: \"{transcribed_text_periodic}\"")
                         app_globals.scribe_to_translator_llm_queue.put(transcribed_text_periodic)
+                        app_globals.schedule_gui_update("transcription", f"[Periodic] {transcribed_text_periodic}")  # GUI Update
                         if app_globals.all_scribe_transcriptions_log is not None:
                             app_globals.all_scribe_transcriptions_log.append(f"[PERIODIC] {transcribed_text_periodic}")
                             
@@ -157,6 +158,7 @@ def translator_llm_agent_worker_new():
                         if len(app_globals.translated_speech_history) > config.LLM_TRANSLATOR_CONTEXT_WINDOW_SIZE * 5:
                             app_globals.translated_speech_history.pop(0)
                     
+                    app_globals.schedule_gui_update("translation", text_to_speak)  # GUI Update
                     # --- Send to TTS queue ---
                     segment_id = app_globals.get_new_segment_id()
                     app_globals.llm_to_tts_queue.put((segment_id, text_to_speak))
