@@ -1,1 +1,5 @@
-# This file marks the directory as a Python package.
+"""GUI package for the Live Dubbing Application."""
+
+from .app import App
+
+__all__ = ["App"]
