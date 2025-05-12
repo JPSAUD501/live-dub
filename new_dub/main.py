@@ -129,6 +129,12 @@ def select_audio_devices_interactive():
                     idx_out_pygame = 0
             config.PYAUDIO_OUTPUT_DEVICE_NAME = output_device_names_pygame[idx_out_pygame]
             print(f"🎧 Output device selected: #{idx_out_pygame} - {config.PYAUDIO_OUTPUT_DEVICE_NAME}")
+            
+            # Force reinitialize any existing pygame resources to ensure correct device selection
+            if pygame.mixer.get_init():
+                pygame.mixer.quit()
+                app_globals.pygame_mixer_initialized.clear()
+                
         except ValueError:
             print(f"Invalid input: '{selected_output_idx_str}'. Using first available output device.")
             config.PYAUDIO_OUTPUT_DEVICE_NAME = output_device_names_pygame[0]
@@ -140,12 +146,21 @@ def select_audio_devices_interactive():
 def main_new_dub():
     """Main function for the new_dub application"""
     print("🚀 Starting New Dub Application...")
-    pygame.init()  # Initialize all Pygame modules (needed for sdl2_audio and mixer)
+    
+    # Initialize pygame with the audio subsystem specifically
+    pygame.init()
+    if not pygame.mixer.get_init():
+        try:
+            # Initialize mixer with default settings before device selection
+            pygame.mixer.init()
+            print("Pygame mixer pre-initialized for device listing")
+        except Exception as e:
+            print(f"⚠️ Warning: Failed to pre-initialize mixer: {e}")
     
     # Select devices before initializing mixer with specific device
     select_audio_devices_interactive()
 
-    # Now initialize mixer with potentially selected device
+    # Now initialize mixer with the selected device
     app_globals.initialize_pygame_mixer_if_needed()
 
     if not config.AZ_OPENAI_ENDPOINT or not config.AZ_OPENAI_KEY:

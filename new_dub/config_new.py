@@ -75,7 +75,7 @@ MAX_NATIVE_HISTORY_CHARS = int(getattr(project_env, 'MAX_NATIVE_HISTORY_CHARS', 
 MAX_TRANSLATED_HISTORY_CHARS = int(getattr(project_env, 'MAX_TRANSLATED_HISTORY_CHARS', 5000))
 
 # --- VAD Configuration (for Azure WebSocket) ---
-AZ_VAD_SILENCE_TIMEOUT_MS = 1200  # Reduced from 2000ms
+AZ_VAD_SILENCE_TIMEOUT_MS = 500  # Reduced from 2000ms
 AZ_VAD_PRE_ROLL_MS = 300
 
 # --- Azure OpenAI Client (for Translator LLM) ---

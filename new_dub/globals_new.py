@@ -3,6 +3,7 @@ import queue
 import websocket  # For WebSocketApp type hint
 from collections import deque
 import pygame  # For pygame types and mixer
+import os  # For environment variable manipulation
 
 from . import config_new as config  # Add this import
 
@@ -69,8 +70,11 @@ def get_new_segment_id() -> int:
 
 # --- Pygame Mixer Initialization ---
 pygame_mixer_initialized = threading.Event()
+pygame_selected_output_device = None  # Will store the actual selected device name
 
 def initialize_pygame_mixer_if_needed():
+    global pygame_selected_output_device
+    
     if not pygame_mixer_initialized.is_set():
         try:
             frequency = config.PYAUDIO_RATE  # e.g., 16000 Hz for pcm_16000
@@ -78,15 +82,55 @@ def initialize_pygame_mixer_if_needed():
             channels = 1  # TTS output is typically mono, Pygame mixer can upmix if device is stereo
             buffer_size = 2048  # Default is 4096, can be reduced for lower latency if needed
 
+            # Use pygame._sdl2 to get more control over output device selection
+            if hasattr(pygame, '_sdl2') and hasattr(pygame._sdl2, 'audio'):
+                # Check if SDL2 audio is available and get device info
+                # Note: We don't need to explicitly call init() on _sdl2.audio as pygame.init() already handles this
+                
+                # Get the device index by name for more reliable selection
+                device_index = -1
+                try:
+                    available_devices = pygame._sdl2.audio.get_audio_device_names(False)  # False for output devices
+                    print(f"🔍 Verifying SDL2 audio output devices:")
+                    for i, device in enumerate(available_devices):
+                        print(f"   {i}: {device}")
+                        if device == config.PYAUDIO_OUTPUT_DEVICE_NAME:
+                            device_index = i
+                            print(f"   ✓ Found selected device at index {device_index}")
+                    
+                    # Special case for selecting the device by index in SDL2
+                    if device_index >= 0:
+                        # Set an environment variable to force SDL to use the specific device
+                        # This works better than the devicename parameter in some environments
+                        try:
+                            os.environ['SDL_AUDIODRIVER'] = 'directsound' if os.name == 'nt' else 'pulseaudio'
+                            os.environ['SDL_AUDIODEVICE'] = str(device_index)
+                            print(f"🔧 Setting SDL audio environment for device index {device_index}: {config.PYAUDIO_OUTPUT_DEVICE_NAME}")
+                        except Exception as e:
+                            print(f"⚠️ Failed to set SDL environment variables: {e}")
+                except Exception as e:
+                    print(f"⚠️ Error accessing SDL2 audio devices: {e}")
+            
+            # Initialize mixer with the device name (the environment variables above may override this)
             if config.PYAUDIO_OUTPUT_DEVICE_NAME:
                 print(f"🎧 Attempting to initialize Pygame mixer on device: {config.PYAUDIO_OUTPUT_DEVICE_NAME} (Freq: {frequency}, Size: {size}, Channels: {channels}, Buffer: {buffer_size})")
-                pygame.mixer.init(
-                    frequency=frequency,
-                    size=size,
-                    channels=channels,
-                    buffer=buffer_size,
-                    devicename=config.PYAUDIO_OUTPUT_DEVICE_NAME
-                )
+                try:
+                    pygame.mixer.init(
+                        frequency=frequency,
+                        size=size,
+                        channels=channels,
+                        buffer=buffer_size,
+                        devicename=config.PYAUDIO_OUTPUT_DEVICE_NAME
+                    )
+                except pygame.error as e:
+                    print(f"⚠️ Failed to initialize mixer with explicit device name: {e}")
+                    print(f"⚠️ Falling back to default device initialization")
+                    pygame.mixer.init(
+                        frequency=frequency,
+                        size=size,
+                        channels=channels,
+                        buffer=buffer_size
+                    )
             else:
                 print(f"🎧 Attempting to initialize Pygame mixer with default device (Freq: {frequency}, Size: {size}, Channels: {channels}, Buffer: {buffer_size}).")
                 pygame.mixer.init(
@@ -96,22 +140,26 @@ def initialize_pygame_mixer_if_needed():
                     buffer=buffer_size
                 )
             
+            # Verify initialization succeeded and store actual settings
             actual_freq, actual_format, actual_channels = pygame.mixer.get_init()
             print(f"✅ Pygame Mixer Initialized. Actual settings - Frequency: {actual_freq}, Format: {actual_format}, Channels: {actual_channels}")
-
+            
+            # Check and report which device is actually being used
+            if hasattr(pygame.mixer, 'get_device_info'):
+                device_info = pygame.mixer.get_device_info()
+                pygame_selected_output_device = device_info.get('name', 'Unknown')
+                print(f"🔊 Pygame Mixer ACTUAL output device: {pygame_selected_output_device}")
+            
+            if hasattr(pygame._sdl2.audio, 'get_current_audio_device'):
+                current_device = pygame._sdl2.audio.get_current_audio_device()
+                print(f"🔊 SDL2 Audio ACTUAL output device: {current_device}")
+            
             if actual_freq != frequency:
                 print(f"⚠️ PYGAME_MIXER_WARNING: Requested frequency {frequency}Hz, but initialized at {actual_freq}Hz.")
             # Pygame format: positive for unsigned, negative for signed. actual_format is bit size.
-            # We request -16 (signed 16-bit). Pygame returns 16 (unsigned) or -16 (signed) for format.
-            # So, if actual_format is 16 and size is -16, it's okay if it means 16-bit.
-            # If actual_format is abs(size) and actual_format has different sign convention, it's okay.
-            # The key is that the bit depth matches.
             if abs(actual_format) != abs(size): 
                 print(f"⚠️ PYGAME_MIXER_WARNING: Requested format (bit depth) {abs(size)}, but initialized at {abs(actual_format)}.")
             
-            # It's common for the mixer to initialize in stereo even if mono is requested,
-            # especially if the default device is stereo. The play_audio_pygame function
-            # should handle mono-to-stereo conversion if needed.
             if actual_channels != channels and actual_channels == 2 and channels == 1:
                  print(f"ℹ️ PYGAME_MIXER_INFO: Requested {channels} channel (mono), but initialized at {actual_channels} channels (stereo). Playback will adapt.")
             elif actual_channels != channels:

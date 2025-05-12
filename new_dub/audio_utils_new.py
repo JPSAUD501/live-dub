@@ -20,7 +20,7 @@ def _create_wav_in_memory(pcm_data: bytes, rate: int, channels: int, sample_widt
             wf.writeframes(pcm_data)
         return wav_file_stream.getvalue()
 
-def transcribe_with_scribe(audio_data: bytes, is_final_segment: bool) -> str: # Removed is_first_segment
+def transcribe_with_scribe(audio_data: bytes, is_final_segment: bool) -> str:
     """Transcribe audio using ElevenLabs Scribe with word-level processing."""
     if not config.elevenlabs_client:
         print("⚠️ [SCRIBE] ElevenLabs client not initialized. Skipping transcription.")
@@ -60,41 +60,41 @@ def transcribe_with_scribe(audio_data: bytes, is_final_segment: bool) -> str: # 
                 return ""
 
             # 2. Define candidate_words: ALWAYS start from the first word item found in this chunk.
-            # We no longer remove the first word based on any 'is_first_segment' logic.
             candidate_words = words_list[first_word_item_index:]
 
             if not candidate_words:
                 return ""
 
             # 3. Apply end trimming based on is_final_segment
-            final_words_to_process = []
-            if not is_final_segment: # For ANY non-final segment (periodic),
-                                     # remove the last word to prevent cut-offs.
+            if is_final_segment:
+                # For the FINAL segment, we keep ALL words, including the last one
+                print(f"ℹ️ [SCRIBE_FINAL] Processing final segment, keeping ALL {len(candidate_words)} candidate words")
+                final_words_to_process = candidate_words
+            else:
+                # For NON-FINAL segments (periodic), remove the last word to prevent cut-offs
                 last_word_item_index_in_candidate = -1
-                # Search for the last "word" type item in the current candidate_words
                 for i in range(len(candidate_words) - 1, -1, -1):
                     word_obj = candidate_words[i]
                     if hasattr(word_obj, 'type') and word_obj.type == "word":
                         last_word_item_index_in_candidate = i
                         break
                 
-                if last_word_item_index_in_candidate != -1:
-                    # Keep items *before* the last word found in candidate_words
+                if last_word_item_index_in_candidate > 0:
+                    # Keep all items before the last word (excluding the last word)
                     final_words_to_process = candidate_words[:last_word_item_index_in_candidate]
+                    print(f"ℹ️ [SCRIBE_PERIODIC] Removed last word at position {last_word_item_index_in_candidate} of {len(candidate_words)}")
                 else:
-                    # No "word" items found in candidate_words (e.g. if it only contained punctuation after start)
-                    # or if candidate_words itself became empty after a potential (but now removed) start trim.
-                    # If candidate_words is not empty but has no 'word' type items, this will result in empty.
-                    # If candidate_words was already empty, it remains empty.
-                    final_words_to_process = [] 
-            else: # Final segment of an utterance: keep all candidate words (no end trim of the last word)
-                final_words_to_process = candidate_words
+                    final_words_to_process = []
+                    print(f"ℹ️ [SCRIBE_PERIODIC] No complete words to keep after trimming the last word")
             
             if not final_words_to_process:
                 return ""
             
             # 4. Join the .text attribute of the remaining items
-            return "".join(word_obj.text for word_obj in final_words_to_process if hasattr(word_obj, 'text'))
+            result = "".join(word_obj.text for word_obj in final_words_to_process if hasattr(word_obj, 'text'))
+            if is_final_segment:
+                print(f"ℹ️ [SCRIBE_FINAL] Final transcription result: \"{result}\"")
+            return result
 
         # Fallback to the main 'text' field if 'words' array is not usable or new logic results in empty
         # (though an empty result from word processing might be intended)
