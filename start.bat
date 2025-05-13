@@ -25,6 +25,25 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo.
+echo Checking for updates...
+echo.
+git rev-parse --git-dir >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    echo Git repository detected, checking for updates...
+    echo.
+    
+    echo Fetching latest updates...
+    git pull
+    if %ERRORLEVEL% EQU 0 (
+        echo ✓ Successfully updated to the latest version!
+    ) else (
+        echo ⚠ Failed to update automatically. You may continue with current version.
+    )
+) else (
+    echo Not a git repository or git not installed. Skipping update check.
+)
+echo.
+
 echo Creating virtual environment...
 if not exist %VENV_DIR% (
     %PYTHON_CMD% -m venv %VENV_DIR%
