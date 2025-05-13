@@ -1,8 +1,0 @@
-{
-  "INPUT_LANGUAGE_NAME_FOR_PROMPT": "English",
-  "OUTPUT_LANGUAGE_NAME_FOR_PROMPT": "Portuguese",
-  "SCRIBE_LANGUAGE_CODE": "en",
-  "TTS_OUTPUT_ENABLED": true,
-  "PYAUDIO_INPUT_DEVICE_INDEX": 2,
-  "PYAUDIO_OUTPUT_DEVICE_NAME": "Voicemeeter AUX Input (VB-Audio Voicemeeter VAIO)"
-}
