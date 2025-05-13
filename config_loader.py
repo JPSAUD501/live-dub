@@ -97,12 +97,17 @@ def update_config_module(api_config: Dict[str, Any], app_config: Dict[str, Any] 
     import config
     
     # Update API config values (env.json)
+    print("CONFIG_LOADER: Updating config module with API settings")
     for key, value in api_config.items():
         if hasattr(config, key):
             setattr(config, key, value)
     
     # Update app config values (app_config.json)
     if app_config:
+        print("CONFIG_LOADER: Updating config module with App settings")
         for key, value in app_config.items():
             if hasattr(config, key):
+                print(f"  Setting {key} = {value}")
                 setattr(config, key, value)
+    else:
+        print("CONFIG_LOADER: No app_config provided, API settings only were updated")

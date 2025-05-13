@@ -54,9 +54,9 @@ class App(customtkinter.CTk):
         self.ws_thread = None
         self.config_window = None
 
-        # --- UI Variables ---
-        self.input_language_var = tk.StringVar(value="English")
-        self.output_language_var = tk.StringVar(value="Portuguese")
+        # --- UI Variables --- (don't set initial values, we'll load them from config)
+        self.input_language_var = tk.StringVar()
+        self.output_language_var = tk.StringVar()
         self.input_device_var = tk.StringVar(value="Default")
         self.output_device_var = tk.StringVar(value="Default")
         
@@ -72,9 +72,11 @@ class App(customtkinter.CTk):
         self._setup_status_action_frame()
         self._setup_text_areas_frame()
         
+        # Populate audio devices first
         self.populate_audio_devices()
 
         # Initialize the language dropdowns from config
+        print("\nAPP_INIT: Loading language settings")
         self.load_language_settings()
 
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -83,77 +85,142 @@ class App(customtkinter.CTk):
         """Setup the controls frame with language and device selectors."""
         self.controls_frame = customtkinter.CTkFrame(self)
         self.controls_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
-        self.controls_frame.grid_columnconfigure((0,1,2,3), weight=1)
-
+        
+        # Main sections layout
+        self.controls_frame.grid_columnconfigure(0, weight=1)
+        
+        # Language Section
+        language_section = customtkinter.CTkFrame(self.controls_frame)
+        language_section.grid(row=0, column=0, padx=5, pady=(5, 10), sticky="ew")
+        language_section.grid_columnconfigure((0, 1), weight=1)
+        language_section.grid_columnconfigure((2, 3), weight=1)
+        
+        language_label = customtkinter.CTkLabel(language_section, text="Language Settings", font=("", 12, "bold"))
+        language_label.grid(row=0, column=0, columnspan=4, sticky="w", padx=10, pady=(5, 0))
+        
         # Input Language
-        customtkinter.CTkLabel(self.controls_frame, text="Input Language:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        customtkinter.CTkLabel(language_section, text="Input Language:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
         self.input_lang_combo = customtkinter.CTkComboBox(
-            self.controls_frame, 
+            language_section, 
             variable=self.input_language_var, 
             values=["English", "Portuguese"],
-            command=self.on_input_language_change  # Add command to handle changes
+            command=self.on_input_language_change,
+            width=140
         )
-        self.input_lang_combo.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        self.input_lang_combo.grid(row=1, column=1, padx=10, pady=5, sticky="w")
 
         # Output Language
-        customtkinter.CTkLabel(self.controls_frame, text="Output Language:").grid(row=0, column=2, padx=5, pady=5, sticky="w")
+        customtkinter.CTkLabel(language_section, text="Output Language:").grid(row=1, column=2, padx=10, pady=5, sticky="w")
         self.output_lang_combo = customtkinter.CTkComboBox(
-            self.controls_frame, 
+            language_section, 
             variable=self.output_language_var, 
             values=["Portuguese", "English"],
-            command=self.on_output_language_change  # Add command to handle changes
+            command=self.on_output_language_change,
+            width=140
         )
-        self.output_lang_combo.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
-
+        self.output_lang_combo.grid(row=1, column=3, padx=10, pady=5, sticky="w")
+        
         # Voice Selection
-        customtkinter.CTkLabel(self.controls_frame, text="Voice:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        customtkinter.CTkLabel(language_section, text="Voice:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
         self.voice_var = tk.StringVar(value="Marcos")
         self.voice_mapping = {
             "Marcos": "CwhRBWXzGAHq8TQ4Fs17"
         }
         self.voice_combo = customtkinter.CTkComboBox(
-            self.controls_frame,
+            language_section,
             variable=self.voice_var,
             values=list(self.voice_mapping.keys()),
-            command=self.on_voice_change
+            command=self.on_voice_change,
+            width=140
         )
-        self.voice_combo.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
-
-        # Input Device
-        customtkinter.CTkLabel(self.controls_frame, text="Input Device (Mic):").grid(row=1, column=2, padx=5, pady=5, sticky="w")
-        self.input_device_combo = customtkinter.CTkComboBox(self.controls_frame, variable=self.input_device_var, command=self.on_input_device_change)
-        self.input_device_combo.grid(row=1, column=3, padx=5, pady=5, sticky="ew")
-
-        # Output Device
-        customtkinter.CTkLabel(self.controls_frame, text="Output Device (Speaker):").grid(row=2, column=0, padx=5, pady=5, sticky="w")
-        self.output_device_combo = customtkinter.CTkComboBox(self.controls_frame, variable=self.output_device_var, command=self.on_output_device_change)
-        self.output_device_combo.grid(row=2, column=1, columnspan=3, padx=5, pady=5, sticky="ew")
-
+        self.voice_combo.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+        
         # TTS Output Toggle
         self.tts_output_var = tk.BooleanVar(value=config.TTS_OUTPUT_ENABLED)
         self.tts_output_cb = customtkinter.CTkCheckBox(
-            self.controls_frame, text="Enable TTS Output", 
+            language_section, text="Enable TTS Output", 
             variable=self.tts_output_var, command=self.on_tts_output_change
         )
-        self.tts_output_cb.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="w")
+        self.tts_output_cb.grid(row=2, column=2, columnspan=2, padx=10, pady=5, sticky="w")
+
+        # Audio Devices Section
+        devices_section = customtkinter.CTkFrame(self.controls_frame)
+        devices_section.grid(row=1, column=0, padx=5, pady=(0, 5), sticky="ew")
+        devices_section.grid_columnconfigure(0, weight=0)
+        devices_section.grid_columnconfigure(1, weight=1)
+        
+        devices_label = customtkinter.CTkLabel(devices_section, text="Audio Devices", font=("", 12, "bold"))
+        devices_label.grid(row=0, column=0, columnspan=2, sticky="w", padx=10, pady=(5, 0))
+
+        # Input Device
+        customtkinter.CTkLabel(devices_section, text="Input Device (Mic):").grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        self.input_device_combo = customtkinter.CTkComboBox(devices_section, variable=self.input_device_var, command=self.on_input_device_change, width=300)
+        self.input_device_combo.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+
+        # Output Device
+        customtkinter.CTkLabel(devices_section, text="Output Device:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        self.output_device_combo = customtkinter.CTkComboBox(devices_section, variable=self.output_device_var, command=self.on_output_device_change, width=300)
+        self.output_device_combo.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
 
     def _setup_status_action_frame(self):
         """Setup the status and action buttons frame."""
         self.status_action_frame = customtkinter.CTkFrame(self)
         self.status_action_frame.grid(row=1, column=0, padx=10, pady=5, sticky="ew")
-        self.status_action_frame.grid_columnconfigure((1, 2), weight=1)
+        self.status_action_frame.grid_columnconfigure(0, weight=1)
+        self.status_action_frame.grid_columnconfigure(1, weight=1)
+        self.status_action_frame.grid_columnconfigure(2, weight=0)
 
-        self.start_button = customtkinter.CTkButton(self.status_action_frame, text="Start Dubbing", command=self.start_translation_session)
+        # Left side: control buttons
+        control_buttons_frame = customtkinter.CTkFrame(self.status_action_frame)
+        control_buttons_frame.grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        
+        self.start_button = customtkinter.CTkButton(
+            control_buttons_frame, 
+            text="Start Dubbing", 
+            command=self.start_translation_session,
+            width=120,
+            height=32,
+            fg_color="#28a745",  # Green color
+            hover_color="#218838"
+        )
         self.start_button.grid(row=0, column=0, padx=5, pady=5)
 
-        self.stop_button = customtkinter.CTkButton(self.status_action_frame, text="Stop Dubbing", command=self.stop_translation_session, state="disabled")
+        self.stop_button = customtkinter.CTkButton(
+            control_buttons_frame, 
+            text="Stop Dubbing", 
+            command=self.stop_translation_session,
+            width=120,
+            height=32,
+            state="disabled",
+            fg_color="#dc3545",  # Red color
+            hover_color="#c82333"
+        )
         self.stop_button.grid(row=0, column=1, padx=5, pady=5)
         
-        self.config_button = customtkinter.CTkButton(self.status_action_frame, text="Settings", command=self.open_config_window)
-        self.config_button.grid(row=0, column=2, padx=5, pady=5)
+        # Right side: settings button and status
+        right_frame = customtkinter.CTkFrame(self.status_action_frame)
+        right_frame.grid(row=0, column=2, padx=5, pady=5, sticky="e")
         
-        self.speaking_status_label = customtkinter.CTkLabel(self.status_action_frame, textvariable=self.speaking_status_var)
-        self.speaking_status_label.grid(row=0, column=3, padx=10, pady=5, sticky="e")
+        self.config_button = customtkinter.CTkButton(
+            right_frame, 
+            text="Settings", 
+            command=self.open_config_window,
+            width=100,
+            height=32
+        )
+        self.config_button.grid(row=0, column=0, padx=5, pady=5)
+        
+        # Status indicator with custom background
+        status_frame = customtkinter.CTkFrame(self.status_action_frame)
+        status_frame.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        
+        self.speaking_status_label = customtkinter.CTkLabel(
+            status_frame, 
+            textvariable=self.speaking_status_var,
+            font=("", 13),
+            width=200
+        )
+        self.speaking_status_label.pack(padx=10, pady=8, expand=True)
 
     def _setup_text_areas_frame(self):
         """Setup the text areas frame for transcription and translation display."""
@@ -176,27 +243,56 @@ class App(customtkinter.CTk):
         if self.config_window is None or not self.config_window.winfo_exists():
             self.config_window = ConfigWindow(self)
             self.config_window.focus_force()  # Focus the new window
+            self.config_window.protocol("WM_DELETE_WINDOW", self._on_config_window_closing)
         else:
             self.config_window.focus_force()  # Focus existing window
+    
+    def _on_config_window_closing(self):
+        """Handle config window closing - reload settings."""
+        if self.config_window:
+            self.config_window.destroy()
+            self.config_window = None
+            # Reload language settings when config window is closed
+            self.load_language_settings()
 
     def load_language_settings(self):
         """Load language settings from config."""
-        # Set input language dropdown
-        if config.INPUT_LANGUAGE_NAME_FOR_PROMPT in ["English", "Portuguese"]:
-            self.input_language_var.set(config.INPUT_LANGUAGE_NAME_FOR_PROMPT)
+        # Reload the config from file to ensure we get the latest values
+        app_config = config_loader.load_app_config()
         
-        # Set output language dropdown
+        # Debug output to verify values
+        print("\nLOAD_SETTINGS: Loading UI settings from app_config.json:")
+        print(f"  Input language (from file): {app_config.get('INPUT_LANGUAGE_NAME_FOR_PROMPT')}")
+        print(f"  Output language (from file): {app_config.get('OUTPUT_LANGUAGE_NAME_FOR_PROMPT')}")
+        print(f"  Input language (from config module): {config.INPUT_LANGUAGE_NAME_FOR_PROMPT}")
+        print(f"  Output language (from config module): {config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT}")
+        
+        # Set input language dropdown using config module values that were loaded from file
+        if config.INPUT_LANGUAGE_NAME_FOR_PROMPT in ["English", "Portuguese"]:
+            print(f"  Setting input language dropdown to: {config.INPUT_LANGUAGE_NAME_FOR_PROMPT}")
+            self.input_language_var.set(config.INPUT_LANGUAGE_NAME_FOR_PROMPT)
+        else:
+            print(f"  Invalid input language '{config.INPUT_LANGUAGE_NAME_FOR_PROMPT}', using default: English")
+            self.input_language_var.set("English")
+        
+        # Set output language dropdown using config module values that were loaded from file
         if config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT in ["English", "Portuguese"]:
+            print(f"  Setting output language dropdown to: {config.INPUT_LANGUAGE_NAME_FOR_PROMPT}")
             self.output_language_var.set(config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT)
+        else:
+            print(f"  Invalid output language '{config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT}', using default: Portuguese")
+            self.output_language_var.set("Portuguese")
             
         # Set TTS output checkbox
         self.tts_output_var.set(config.TTS_OUTPUT_ENABLED)
+        print(f"  Setting TTS enabled to: {config.TTS_OUTPUT_ENABLED}")
         
         # Set voice dropdown
         voice_id = config.ELEVENLABS_VOICE_ID
         for name, id in self.voice_mapping.items():
             if id == voice_id:
                 self.voice_var.set(name)
+                print(f"  Setting voice to: {name} ({voice_id})")
                 break
 
     def _get_pygame_output_devices(self) -> tuple[str, ...]:
@@ -236,7 +332,17 @@ class App(customtkinter.CTk):
         finally:
             pa.terminate()
         self.input_device_combo.configure(values=input_devices)
-        self.input_device_var.set(input_devices[0] if input_devices else "No devices found")
+        
+        # Initially set to Default
+        selected_input = "Default"
+        # Try to find the device name that matches the stored index
+        if config.PYAUDIO_INPUT_DEVICE_INDEX is not None:
+            for device_name, index in self.input_device_map.items():
+                if index == config.PYAUDIO_INPUT_DEVICE_INDEX:
+                    selected_input = device_name
+                    print(f"Found stored input device: {selected_input} with index {index}")
+                    break
+        self.input_device_var.set(selected_input)
 
         # Output devices (Pygame/SDL2)
         output_devices = ["Default"]
@@ -250,7 +356,14 @@ class App(customtkinter.CTk):
         except Exception as e:
             print(f"Error populating output devices: {e}")
         self.output_device_combo.configure(values=output_devices)
-        self.output_device_var.set(output_devices[0] if output_devices else "No devices found")
+        
+        # Initially set to Default
+        selected_output = "Default"
+        # Try to find the exact device name in available devices
+        if config.PYAUDIO_OUTPUT_DEVICE_NAME in output_devices:
+            selected_output = config.PYAUDIO_OUTPUT_DEVICE_NAME
+            print(f"Found stored output device: {selected_output}")
+        self.output_device_var.set(selected_output)
 
     def on_input_language_change(self, choice):
         """Handle input language selection change."""
@@ -330,9 +443,14 @@ class App(customtkinter.CTk):
 
     def update_speaking_status(self, is_speaking: bool):
         """Update the speaking status indicator."""
-        status = "Status: Speaking..." if is_speaking else "Status: Idle"
-        self.speaking_status_var.set(status)
-        self.speaking_status_label.configure(text_color="green" if is_speaking else "gray")
+        if is_speaking:
+            status = "Status: Speaking..."
+            self.speaking_status_label.configure(text_color="green")
+            self.speaking_status_var.set(status)
+        else:
+            status = "Status: Idle"
+            self.speaking_status_label.configure(text_color="gray")
+            self.speaking_status_var.set(status)
 
     def update_transcription(self, text: str):
         """Update the transcription text display."""
@@ -486,7 +604,7 @@ class App(customtkinter.CTk):
                 on_open=on_ws_open_new,
                 on_message=on_ws_message_new,
                 on_error=on_ws_error_new,
-                on_ws_close=on_ws_close_new # This will set app_globals.done on close
+                on_close=on_ws_close_new # This will set app_globals.done on close
             )
             self.ws_thread = threading.Thread(target=app_globals.ws_instance_global.run_forever, daemon=True)
             self.ws_thread.start()
@@ -561,8 +679,10 @@ class App(customtkinter.CTk):
         self.stop_button.configure(state="disabled")
         self.input_lang_combo.configure(state="normal")
         self.output_lang_combo.configure(state="normal")
+        self.voice_combo.configure(state="normal") # Added this line
         self.input_device_combo.configure(state="normal")
         self.output_device_combo.configure(state="normal")
+        self.tts_output_cb.configure(state="normal") # Added this line
         self.config_button.configure(state="normal")
         self.update_speaking_status(False)
         self.speaking_status_var.set("Status: Stopped")

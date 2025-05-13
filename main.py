@@ -17,6 +17,15 @@ if __name__ == "__main__":
     api_config = config_loader.load_api_config()
     app_config = config_loader.load_app_config()
     
+    # Print debug info about loaded config
+    print("="*50)
+    print("STARTUP: Loaded configurations:")
+    print(f"  Input language: {app_config.get('INPUT_LANGUAGE_NAME_FOR_PROMPT')}")
+    print(f"  Output language: {app_config.get('OUTPUT_LANGUAGE_NAME_FOR_PROMPT')}")
+    print(f"  TTS enabled: {app_config.get('TTS_OUTPUT_ENABLED')}")
+    print(f"  Voice ID: {app_config.get('ELEVENLABS_VOICE_ID')}")
+    print("="*50)
+    
     # Import other modules after loading configuration
     import config
     import config_operations
@@ -26,6 +35,15 @@ if __name__ == "__main__":
     
     # Apply configuration and initialize clients
     config_operations.apply_config()
+    
+    # Verify config after update
+    print("="*50)
+    print("STARTUP: Verified config module values:")
+    print(f"  Input language: {config.INPUT_LANGUAGE_NAME_FOR_PROMPT}")
+    print(f"  Output language: {config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT}")
+    print(f"  TTS enabled: {config.TTS_OUTPUT_ENABLED}")
+    print(f"  Voice ID: {config.ELEVENLABS_VOICE_ID}")
+    print("="*50)
     
     # Setup GUI style
     from gui.utils import setup_gui_style

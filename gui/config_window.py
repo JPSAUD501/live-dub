@@ -22,7 +22,7 @@ class ConfigWindow(customtkinter.CTkToplevel):
         super().__init__(parent)
         self.parent = parent
         self.title("API Credentials")
-        self.geometry("600x400")
+        self.geometry("600x350")  # Reduced height since we removed a field
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
         self.api_config = config_loader.load_api_config()
@@ -77,18 +77,13 @@ class ConfigWindow(customtkinter.CTkToplevel):
         self.el_key_entry.grid(row=2, column=1, sticky="ew", padx=10, pady=5)
         self.el_key_entry.insert(0, self.api_config.get("ELEVENLABS_API_KEY", ""))
         
-        customtkinter.CTkLabel(entries_frame, text="ElevenLabs Voice ID:").grid(row=3, column=0, sticky="w", padx=10, pady=5)
-        self.el_voice_entry = customtkinter.CTkEntry(entries_frame, width=400)
-        self.el_voice_entry.grid(row=3, column=1, sticky="ew", padx=10, pady=5)
-        self.el_voice_entry.insert(0, self.api_config.get("ELEVENLABS_VOICE_ID", ""))
-        
-        # Toggle show/hide password
+        # Toggle show/hide password - Row shifted up from 4 to 3 since we removed Voice ID
         self.show_passwords_var = tk.BooleanVar(value=False)
         self.show_passwords_cb = customtkinter.CTkCheckBox(
             entries_frame, text="Show passwords", variable=self.show_passwords_var, 
             command=self.toggle_password_visibility
         )
-        self.show_passwords_cb.grid(row=4, column=1, sticky="w", padx=10, pady=10)
+        self.show_passwords_cb.grid(row=3, column=1, sticky="w", padx=10, pady=10)
     
     def toggle_password_visibility(self):
         """Toggle visibility of password fields."""
@@ -102,7 +97,6 @@ class ConfigWindow(customtkinter.CTkToplevel):
         self.api_config["AZ_OPENAI_ENDPOINT"] = self.az_endpoint_entry.get().strip()
         self.api_config["AZ_OPENAI_KEY"] = self.az_key_entry.get().strip()
         self.api_config["ELEVENLABS_API_KEY"] = self.el_key_entry.get().strip()
-        self.api_config["ELEVENLABS_VOICE_ID"] = self.el_voice_entry.get().strip()
         
         # Save to file
         config_loader.save_api_config(self.api_config)
