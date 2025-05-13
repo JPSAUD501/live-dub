@@ -3,7 +3,7 @@ import queue  # For queue.Empty
 
 import config as config
 import globals as app_globals
-from audio_utils import transcribe_with_scribe, generate_audio_elevenlabs, play_audio_pygame
+from audio_utils import transcribe_with_scribe, generate_audio_elevenlabs, play_audio_pygame, validate_transcription
 from llm_utils import llm_translate_and_decide_speech
 
 def periodic_scribe_transcription_worker_new():
@@ -61,15 +61,7 @@ def periodic_scribe_transcription_worker_new():
                         is_final_segment=False
                     )
                     
-                    is_valid_transcription = False
-                    if transcribed_text_periodic and \
-                       not transcribed_text_periodic.startswith("[Scribe Error:") and \
-                       "\uFFFD" not in transcribed_text_periodic:  # Filter out replacement characters
-                        is_valid_transcription = True
-                        if config.SCRIBE_LANGUAGE_CODE == "pt" and len(transcribed_text_periodic) < 5 and not any(c.isalpha() for c in transcribed_text_periodic):
-                            is_valid_transcription = False
-
-                    if is_valid_transcription:
+                    if validate_transcription(transcribed_text_periodic):
                         print(f"⏱️ [SCRIBE_PERIODIC_RESULT] Transcription: \"{transcribed_text_periodic}\"")
                         app_globals.scribe_to_translator_llm_queue.put(transcribed_text_periodic)
                         app_globals.schedule_gui_update("transcription", f"[Periodic] {transcribed_text_periodic}")  # GUI Update

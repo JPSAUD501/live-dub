@@ -20,6 +20,27 @@ def _create_wav_in_memory(pcm_data: bytes, rate: int, channels: int, sample_widt
             wf.writeframes(pcm_data)
         return wav_file_stream.getvalue()
 
+def validate_transcription(transcribed_text: str) -> bool:
+    """
+    Validate if a transcription is usable (not empty, no errors, no replacement characters).
+    
+    Args:
+        transcribed_text: The text returned from the transcription service
+        
+    Returns:
+        bool: True if the transcription is valid, False otherwise
+    """
+    if not transcribed_text:
+        return False
+        
+    if transcribed_text.startswith("[Scribe Error:"):
+        return False
+        
+    if "\uFFFD" in transcribed_text:  # Filter out replacement characters
+        return False
+        
+    return True
+
 def transcribe_with_scribe(audio_data: bytes, is_final_segment: bool) -> str:
     """Transcribe audio using ElevenLabs Scribe with word-level processing."""
     if not config.elevenlabs_client:

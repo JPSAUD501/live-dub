@@ -20,7 +20,7 @@ DEFAULT_APP_CONFIG = {
     "SCRIBE_LANGUAGE_CODE": "en",
     "TTS_LANGUAGE_CODE": "pt",  # Default TTS language code
     "TTS_OUTPUT_ENABLED": True,
-    "ELEVENLABS_VOICE_ID": "CwhRBWXzGAHq8TQ4Fs17",  # Default voice ID (Marcos)
+    "ELEVENLABS_VOICE_ID": "bVMeCyTHy58xNoL34h3p",  # Default voice ID (Marcos)
     "PYAUDIO_INPUT_DEVICE_INDEX": None,
     "PYAUDIO_OUTPUT_DEVICE_NAME": None
 }

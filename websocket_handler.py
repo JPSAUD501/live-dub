@@ -5,7 +5,7 @@ import websocket  # For WebSocketApp type hint
 
 import config as config
 import globals as app_globals
-from audio_utils import transcribe_with_scribe
+from audio_utils import transcribe_with_scribe, validate_transcription
 
 def on_ws_open_new(ws: websocket.WebSocketApp):
     """Handler for when the WebSocket connection opens"""
@@ -121,15 +121,7 @@ def on_ws_message_new(ws: websocket.WebSocketApp, message_str: str):
                     is_final_segment=True
                 )
                 
-                is_valid_transcription = False
-                if transcribed_text_final and \
-                   not transcribed_text_final.startswith("[Scribe Error:") and \
-                   "\uFFFD" not in transcribed_text_final:
-                    is_valid_transcription = True
-                    if config.SCRIBE_LANGUAGE_CODE == "pt" and len(transcribed_text_final) < 5 and not any(c.isalpha() for c in transcribed_text_final):
-                        is_valid_transcription = False
-
-                if is_valid_transcription:
+                if validate_transcription(transcribed_text_final):
                     print(f"🎤 [SCRIBE_FINAL_RESULT] Final transcription: \"{transcribed_text_final}\"")
                     app_globals.scribe_to_translator_llm_queue.put(transcribed_text_final)
                     app_globals.schedule_gui_update("transcription", f"[Final] {transcribed_text_final}")  # GUI Update

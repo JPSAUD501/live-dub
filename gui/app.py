@@ -124,7 +124,7 @@ class App(customtkinter.CTk):
         customtkinter.CTkLabel(language_section, text="Voice:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
         self.voice_var = tk.StringVar(value="Marcos")
         self.voice_mapping = {
-            "Marcos": "CwhRBWXzGAHq8TQ4Fs17"
+            "Marcos": "bVMeCyTHy58xNoL34h3p"
         }
         self.voice_combo = customtkinter.CTkComboBox(
             language_section,
