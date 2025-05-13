@@ -357,8 +357,10 @@ class App(customtkinter.CTk):
         """Handle output language selection change."""
         if choice == "en-US":
             config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT = "en-US"
+            config.TTS_LANGUAGE_CODE = "en"
         elif choice == "pt-BR":
             config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT = "pt-BR"
+            config.TTS_LANGUAGE_CODE = "pt"
         
         self.save_current_settings_to_config()
 

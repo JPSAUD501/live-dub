@@ -91,7 +91,7 @@ if not exist env.json (
 
 if not exist app_config.json (
     echo Creating default app_config.json file...
-    echo {"INPUT_LANGUAGE_NAME_FOR_PROMPT":"English","OUTPUT_LANGUAGE_NAME_FOR_PROMPT":"Portuguese","SCRIBE_LANGUAGE_CODE":"en","TTS_OUTPUT_ENABLED":true,"ELEVENLABS_VOICE_ID":"CwhRBWXzGAHq8TQ4Fs17","PYAUDIO_INPUT_DEVICE_INDEX":null,"PYAUDIO_OUTPUT_DEVICE_NAME":null} > app_config.json
+    echo {"INPUT_LANGUAGE_NAME_FOR_PROMPT":"English","OUTPUT_LANGUAGE_NAME_FOR_PROMPT":"Portuguese","SCRIBE_LANGUAGE_CODE":"en", "TTS_LANGUAGE_CODE": "pt","TTS_OUTPUT_ENABLED":true,"ELEVENLABS_VOICE_ID":"CwhRBWXzGAHq8TQ4Fs17","PYAUDIO_INPUT_DEVICE_INDEX":null,"PYAUDIO_OUTPUT_DEVICE_NAME":null} > app_config.json
 )
 
 echo.
