@@ -189,6 +189,14 @@ def tts_worker_new():
             
             segment_id, text_to_speak = item
             
+            # Check if TTS output is enabled in config
+            if not config.TTS_OUTPUT_ENABLED:
+                print(f"ℹ️ [TTS_WORKER] TTS output is disabled. Skipping audio generation for: \"{text_to_speak[:30]}...\"")
+                # Still pass along the segment_id with None audio to maintain sequence
+                app_globals.tts_to_playback_queue.put((segment_id, None))
+                app_globals.llm_to_tts_queue.task_done()
+                continue
+            
             if text_to_speak and text_to_speak.strip():
                 audio_bytes = generate_audio_elevenlabs(text_to_speak, segment_id)
                 app_globals.tts_to_playback_queue.put((segment_id, audio_bytes))

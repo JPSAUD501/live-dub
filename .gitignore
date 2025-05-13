@@ -149,4 +149,7 @@ cython_debug/
 *.swp
 *.swo
 *~
+
+# Environment and configuration files
 env.json
+app_config.json

@@ -21,7 +21,7 @@ class ConfigWindow(customtkinter.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
-        self.title("Configuration")
+        self.title("API Credentials")
         self.geometry("600x400")
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
@@ -115,7 +115,7 @@ class ConfigWindow(customtkinter.CTkToplevel):
         config.client_az_llm = config_operations.initialize_azure_openai_client()
         config.elevenlabs_client = config_operations.initialize_elevenlabs_client()
         
-        self.show_message("Success", "Configuration saved successfully!")
+        self.show_message("Success", "API credentials saved successfully!")
         self.destroy()
     
     def show_message(self, title, message):

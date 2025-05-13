@@ -67,29 +67,16 @@ echo Creating default configuration files if not exist...
 
 if not exist env.json (
     echo Creating default env.json file...
-    echo {"AZ_OPENAI_ENDPOINT":"","AZ_OPENAI_KEY":"","AZ_TRANSLATOR_LLM_DEPLOYMENT_NAME":"gpt-4o-mini","ELEVENLABS_API_KEY":"","ELEVENLABS_VOICE_ID":"","ELEVENLABS_OPTIMIZE_STREAMING_LATENCY":0} > env.json
+    echo {"AZ_OPENAI_ENDPOINT":"","AZ_OPENAI_KEY":"","ELEVENLABS_API_KEY":"","ELEVENLABS_VOICE_ID":""} > env.json
 )
 
 if not exist app_config.json (
     echo Creating default app_config.json file...
-    echo {"INPUT_LANGUAGE_NAME_FOR_PROMPT":"English","OUTPUT_LANGUAGE_NAME_FOR_PROMPT":"Portuguese","SCRIBE_LANGUAGE_CODE":"en","TTS_OUTPUT_ENABLED":true,"PERIODIC_SCRIBE_INTERVAL_S":3.0,"PERIODIC_SCRIBE_INTER_CHUNK_OVERLAP_MS":250,"FINAL_SCRIBE_PRE_ROLL_MS":500,"LLM_TRANSLATOR_CONTEXT_WINDOW_SIZE":5,"MAX_NATIVE_HISTORY_CHARS":5000,"MAX_TRANSLATED_HISTORY_CHARS":5000,"AZ_VAD_SILENCE_TIMEOUT_MS":500,"AZ_VAD_PRE_ROLL_MS":300} > app_config.json
+    echo {"INPUT_LANGUAGE_NAME_FOR_PROMPT":"English","OUTPUT_LANGUAGE_NAME_FOR_PROMPT":"Portuguese","SCRIBE_LANGUAGE_CODE":"en","TTS_OUTPUT_ENABLED":true,"PYAUDIO_INPUT_DEVICE_INDEX":null,"PYAUDIO_OUTPUT_DEVICE_NAME":null} > app_config.json
 )
 
 echo.
-echo Setup complete!
+echo Setup complete! Starting application...
 echo.
-echo Would you like to run the application now? (Y/N)
-set /p RUN_NOW=
 
-if /i "%RUN_NOW%"=="Y" (
-    echo.
-    echo Starting Live Dubbing Application...
-    python main.py
-) else (
-    echo.
-    echo To start the application later, run:
-    echo start.bat
-    echo.
-)
-
-pause
+call start.bat

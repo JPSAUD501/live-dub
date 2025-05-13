@@ -13,15 +13,16 @@ if __name__ == "__main__":
     
     # Load and apply configuration first
     import config_loader
-    # Load configurations from JSON file
+    # Load configurations from JSON files
     api_config = config_loader.load_api_config()
+    app_config = config_loader.load_app_config()
     
     # Import other modules after loading configuration
     import config
     import config_operations
     
     # Update config module with loaded values
-    config_loader.update_config_module(api_config)
+    config_loader.update_config_module(api_config, app_config)
     
     # Apply configuration and initialize clients
     config_operations.apply_config()

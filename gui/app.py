@@ -87,12 +87,22 @@ class App(customtkinter.CTk):
 
         # Input Language
         customtkinter.CTkLabel(self.controls_frame, text="Input Language:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        self.input_lang_combo = customtkinter.CTkComboBox(self.controls_frame, variable=self.input_language_var, values=["English", "Portuguese"])
+        self.input_lang_combo = customtkinter.CTkComboBox(
+            self.controls_frame, 
+            variable=self.input_language_var, 
+            values=["English", "Portuguese"],
+            command=self.on_input_language_change  # Add command to handle changes
+        )
         self.input_lang_combo.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
         # Output Language
         customtkinter.CTkLabel(self.controls_frame, text="Output Language:").grid(row=0, column=2, padx=5, pady=5, sticky="w")
-        self.output_lang_combo = customtkinter.CTkComboBox(self.controls_frame, variable=self.output_language_var, values=["Portuguese", "English"])
+        self.output_lang_combo = customtkinter.CTkComboBox(
+            self.controls_frame, 
+            variable=self.output_language_var, 
+            values=["Portuguese", "English"],
+            command=self.on_output_language_change  # Add command to handle changes
+        )
         self.output_lang_combo.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
 
         # Input Device
@@ -104,6 +114,14 @@ class App(customtkinter.CTk):
         customtkinter.CTkLabel(self.controls_frame, text="Output Device (Speaker):").grid(row=1, column=2, padx=5, pady=5, sticky="w")
         self.output_device_combo = customtkinter.CTkComboBox(self.controls_frame, variable=self.output_device_var, command=self.on_output_device_change)
         self.output_device_combo.grid(row=1, column=3, padx=5, pady=5, sticky="ew")
+
+        # TTS Output Toggle
+        self.tts_output_var = tk.BooleanVar(value=config.TTS_OUTPUT_ENABLED)
+        self.tts_output_cb = customtkinter.CTkCheckBox(
+            self.controls_frame, text="Enable TTS Output", 
+            variable=self.tts_output_var, command=self.on_tts_output_change
+        )
+        self.tts_output_cb.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="w")
 
     def _setup_status_action_frame(self):
         """Setup the status and action buttons frame."""
@@ -156,6 +174,9 @@ class App(customtkinter.CTk):
         # Set output language dropdown
         if config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT in ["English", "Portuguese"]:
             self.output_language_var.set(config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT)
+            
+        # Set TTS output checkbox
+        self.tts_output_var.set(config.TTS_OUTPUT_ENABLED)
 
     def _get_pygame_output_devices(self) -> tuple[str, ...]:
         """Get available output devices from Pygame."""
@@ -210,10 +231,33 @@ class App(customtkinter.CTk):
         self.output_device_combo.configure(values=output_devices)
         self.output_device_var.set(output_devices[0] if output_devices else "No devices found")
 
+    def on_input_language_change(self, choice):
+        """Handle input language selection change."""
+        if choice == "English":
+            config.INPUT_LANGUAGE_NAME_FOR_PROMPT = "English"
+            config.SCRIBE_LANGUAGE_CODE = "en"
+        elif choice == "Portuguese":
+            config.INPUT_LANGUAGE_NAME_FOR_PROMPT = "Portuguese"
+            config.SCRIBE_LANGUAGE_CODE = "pt"
+        
+        print(f"GUI: Input Language Changed: {choice}")
+        self.save_current_settings_to_config()
+    
+    def on_output_language_change(self, choice):
+        """Handle output language selection change."""
+        if choice == "English":
+            config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT = "English"
+        elif choice == "Portuguese":
+            config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT = "Portuguese"
+        
+        print(f"GUI: Output Language Changed: {choice}")
+        self.save_current_settings_to_config()
+
     def on_input_device_change(self, choice):
         """Handle input device selection change."""
         config.PYAUDIO_INPUT_DEVICE_INDEX = self.input_device_map.get(choice)
         print(f"GUI: Selected Input Device: {choice} -> Index {config.PYAUDIO_INPUT_DEVICE_INDEX}")
+        self.save_current_settings_to_config()
 
     def on_output_device_change(self, choice):
         """Handle output device selection change."""
@@ -225,6 +269,33 @@ class App(customtkinter.CTk):
             app_globals.pygame_mixer_initialized.clear()
             # The core logic will re-initialize it when needed
             print("GUI: Pygame mixer will re-initialize with new device on next playback.")
+        self.save_current_settings_to_config()
+    
+    def on_tts_output_change(self):
+        """Handle TTS output toggle change."""
+        config.TTS_OUTPUT_ENABLED = self.tts_output_var.get()
+        print(f"GUI: TTS Output Enabled: {config.TTS_OUTPUT_ENABLED}")
+        self.save_current_settings_to_config()
+    
+    def save_current_settings_to_config(self):
+        """Save current GUI settings to app_config.json."""
+        app_config = config_loader.load_app_config()
+        
+        # Language settings
+        app_config["INPUT_LANGUAGE_NAME_FOR_PROMPT"] = config.INPUT_LANGUAGE_NAME_FOR_PROMPT
+        app_config["OUTPUT_LANGUAGE_NAME_FOR_PROMPT"] = config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT
+        app_config["SCRIBE_LANGUAGE_CODE"] = config.SCRIBE_LANGUAGE_CODE
+        
+        # TTS setting
+        app_config["TTS_OUTPUT_ENABLED"] = config.TTS_OUTPUT_ENABLED
+        
+        # Device settings
+        app_config["PYAUDIO_INPUT_DEVICE_INDEX"] = config.PYAUDIO_INPUT_DEVICE_INDEX
+        app_config["PYAUDIO_OUTPUT_DEVICE_NAME"] = config.PYAUDIO_OUTPUT_DEVICE_NAME
+        
+        # Save to file
+        config_loader.save_app_config(app_config)
+        print("GUI: Settings saved to app_config.json")
 
     def update_speaking_status(self, is_speaking: bool):
         """Update the speaking status indicator."""
@@ -275,6 +346,9 @@ class App(customtkinter.CTk):
             config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT = "Portuguese"
         
         print(f"GUI: Config Applied - Input Lang: {config.INPUT_LANGUAGE_NAME_FOR_PROMPT} ({config.SCRIBE_LANGUAGE_CODE}), Output Lang: {config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT}")
+        
+        # Save all current settings to config file
+        self.save_current_settings_to_config()
         
         # Devices (already set by on_..._change methods, but ensure they are current)
         config.PYAUDIO_INPUT_DEVICE_INDEX = self.input_device_map.get(self.input_device_var.get())
