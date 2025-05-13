@@ -63,6 +63,7 @@ Your primary language pair is {config.INPUT_LANGUAGE_NAME_FOR_PROMPT} (source) t
 # Additional Instructions:
 - **Exclude Sounds, Numbers, and Onomatopoeias**: Your translation must not include sounds (e.g., "uh", "ah") or onomatopoeias (e.g., "boom", "splash").
 - **Seamless Continuation**: Ensure that your response is always a continuation of the last sentence in the `translated_speech_history`. Avoid starting a new sentence abruptly if the previous one is incomplete.
+- **Do not add elipses**: Do not add ellipses ("...") to your output.
 
 # Input Analysis:
 You will receive:
