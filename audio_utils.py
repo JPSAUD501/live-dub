@@ -113,17 +113,51 @@ def transcribe_with_scribe(audio_data: bytes, is_final_segment: bool) -> str:
             
             # 4. Join the .text attribute of the remaining items
             result = "".join(word_obj.text for word_obj in final_words_to_process if hasattr(word_obj, 'text'))
+            
+            if not result: # If result is empty string after join
+                return ""
+
             if is_final_segment:
                 print(f"ℹ️ [SCRIBE_FINAL] Final transcription result: \"{result}\"")
-            return result
+                return result
+            else: # It's periodic and result is not empty
+                processed_result = result + "..."
+                print(f"ℹ️ [SCRIBE_PERIODIC] Transcription with ellipsis: \"{processed_result}\"")
+                return processed_result
 
         # Fallback to the main 'text' field if 'words' array is not usable or new logic results in empty
         # (though an empty result from word processing might be intended)
         elif hasattr(response, 'text') and isinstance(response.text, str):
             print("ℹ️ [SCRIBE] Processed using 'words' array resulted in empty or 'words' array not suitable, falling back to main 'text' field.")
-            return response.text 
+            text_content = response.text
+            
+            if not text_content: # If fallback text is empty
+                return ""
+
+            if is_final_segment:
+                print(f"ℹ️ [SCRIBE_FINAL] Final transcription result (from 'text' fallback): \"{text_content}\"")
+                return text_content
+            else: # Periodic and text_content is not empty
+                processed_text = text_content + "..."
+                print(f"ℹ️ [SCRIBE_PERIODIC] Transcription with ellipsis (from 'text' fallback): \"{processed_text}\"")
+                return processed_text
         elif isinstance(response, str): # Fallback if response is just a string
-            return response
+            str_content = response
+
+            if not str_content: # If fallback string is empty
+                return ""
+
+            # If the string response is one of our own error messages, return it as is.
+            if str_content.startswith("[Scribe Error:"):
+                return str_content
+
+            if is_final_segment:
+                print(f"ℹ️ [SCRIBE_FINAL] Final transcription result (from string fallback): \"{str_content}\"")
+                return str_content
+            else: # Periodic and str_content is not empty and not an error
+                processed_str = str_content + "..."
+                print(f"ℹ️ [SCRIBE_PERIODIC] Transcription with ellipsis (from string fallback): \"{processed_str}\"")
+                return processed_str
         else:
             try:
                 # Try to serialize the response for debugging

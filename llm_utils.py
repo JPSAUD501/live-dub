@@ -126,9 +126,22 @@ Output ONLY a JSON object with the following structure:
         "translated_speech_history": current_translated_speech_history
     }
 
+    user_message_json_str = json.dumps(user_payload, ensure_ascii=False)
+    
+    # Prepare the "Continue from:" suffix if history is available
+    continue_from_suffix_text = ""
+    if current_translated_speech_history:
+        last_spoken_segment = current_translated_speech_history[-1]
+        if last_spoken_segment:  # Ensure the segment is not empty
+            suffix = last_spoken_segment[-20:]
+            continue_from_suffix_text = f"\nSeamless continue: {suffix}"
+
+    # Combine the JSON payload with the "Continue from:" text
+    final_user_content = user_message_json_str + continue_from_suffix_text
+
     messages = [
         {"role": "system", "content": system_prompt},
-        {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False)}
+        {"role": "user", "content": final_user_content}
     ]
 
     try:
