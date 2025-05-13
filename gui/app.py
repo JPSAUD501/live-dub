@@ -103,7 +103,7 @@ class App(customtkinter.CTk):
         self.input_lang_combo = customtkinter.CTkComboBox(
             language_section, 
             variable=self.input_language_var, 
-            values=["English", "Portuguese"],
+            values=["en-US", "pt-BR"],
             command=self.on_input_language_change,
             width=140
         )
@@ -114,7 +114,7 @@ class App(customtkinter.CTk):
         self.output_lang_combo = customtkinter.CTkComboBox(
             language_section, 
             variable=self.output_language_var, 
-            values=["Portuguese", "English"],
+            values=["pt-BR", "en-US"],
             command=self.on_output_language_change,
             width=140
         )
@@ -256,43 +256,23 @@ class App(customtkinter.CTk):
             self.load_language_settings()
 
     def load_language_settings(self):
-        """Load language settings from config."""
-        # Reload the config from file to ensure we get the latest values
-        app_config = config_loader.load_app_config()
-        
-        # Debug output to verify values
-        print("\nLOAD_SETTINGS: Loading UI settings from app_config.json:")
-        print(f"  Input language (from file): {app_config.get('INPUT_LANGUAGE_NAME_FOR_PROMPT')}")
-        print(f"  Output language (from file): {app_config.get('OUTPUT_LANGUAGE_NAME_FOR_PROMPT')}")
-        print(f"  Input language (from config module): {config.INPUT_LANGUAGE_NAME_FOR_PROMPT}")
-        print(f"  Output language (from config module): {config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT}")
-        
-        # Set input language dropdown using config module values that were loaded from file
-        if config.INPUT_LANGUAGE_NAME_FOR_PROMPT in ["English", "Portuguese"]:
-            print(f"  Setting input language dropdown to: {config.INPUT_LANGUAGE_NAME_FOR_PROMPT}")
+        """Load language settings from config"""
+        # Set input language dropdown
+        if config.INPUT_LANGUAGE_NAME_FOR_PROMPT in ["en-US", "pt-BR"]:
             self.input_language_var.set(config.INPUT_LANGUAGE_NAME_FOR_PROMPT)
-        else:
-            print(f"  Invalid input language '{config.INPUT_LANGUAGE_NAME_FOR_PROMPT}', using default: English")
-            self.input_language_var.set("English")
         
-        # Set output language dropdown using config module values that were loaded from file
-        if config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT in ["English", "Portuguese"]:
-            print(f"  Setting output language dropdown to: {config.INPUT_LANGUAGE_NAME_FOR_PROMPT}")
+        # Set output language dropdown
+        if config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT in ["en-US", "pt-BR"]:
             self.output_language_var.set(config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT)
-        else:
-            print(f"  Invalid output language '{config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT}', using default: Portuguese")
-            self.output_language_var.set("Portuguese")
             
         # Set TTS output checkbox
         self.tts_output_var.set(config.TTS_OUTPUT_ENABLED)
-        print(f"  Setting TTS enabled to: {config.TTS_OUTPUT_ENABLED}")
         
         # Set voice dropdown
         voice_id = config.ELEVENLABS_VOICE_ID
         for name, id in self.voice_mapping.items():
             if id == voice_id:
                 self.voice_var.set(name)
-                print(f"  Setting voice to: {name} ({voice_id})")
                 break
 
     def _get_pygame_output_devices(self) -> tuple[str, ...]:
@@ -305,7 +285,6 @@ class App(customtkinter.CTk):
                     pygame.init()
                     if not pygame.mixer.get_init(): pygame.mixer.init()
                 except Exception as e:
-                    print(f"PYGAME_DEVICE_LIST_ERROR: {e}")
                     return tuple()
         devices = tuple(sdl2_audio.get_audio_device_names(False))
         if init_by_me and pygame.mixer.get_init(): pygame.mixer.quit()
@@ -328,7 +307,7 @@ class App(customtkinter.CTk):
                     input_devices.append(device_name)
                     self.input_device_map[device_name] = i
         except Exception as e:
-            print(f"Error populating input devices: {e}")
+            pass
         finally:
             pa.terminate()
         self.input_device_combo.configure(values=input_devices)
@@ -340,7 +319,6 @@ class App(customtkinter.CTk):
             for device_name, index in self.input_device_map.items():
                 if index == config.PYAUDIO_INPUT_DEVICE_INDEX:
                     selected_input = device_name
-                    print(f"Found stored input device: {selected_input} with index {index}")
                     break
         self.input_device_var.set(selected_input)
 
@@ -354,7 +332,7 @@ class App(customtkinter.CTk):
                     output_devices.append(device_name)
                     self.output_device_map[device_name] = device_name # Store the name itself
         except Exception as e:
-            print(f"Error populating output devices: {e}")
+            pass
         self.output_device_combo.configure(values=output_devices)
         
         # Initially set to Default
@@ -362,60 +340,51 @@ class App(customtkinter.CTk):
         # Try to find the exact device name in available devices
         if config.PYAUDIO_OUTPUT_DEVICE_NAME in output_devices:
             selected_output = config.PYAUDIO_OUTPUT_DEVICE_NAME
-            print(f"Found stored output device: {selected_output}")
         self.output_device_var.set(selected_output)
 
     def on_input_language_change(self, choice):
         """Handle input language selection change."""
-        if choice == "English":
-            config.INPUT_LANGUAGE_NAME_FOR_PROMPT = "English"
+        if choice == "en-US":
+            config.INPUT_LANGUAGE_NAME_FOR_PROMPT = "en-US"
             config.SCRIBE_LANGUAGE_CODE = "en"
-        elif choice == "Portuguese":
-            config.INPUT_LANGUAGE_NAME_FOR_PROMPT = "Portuguese"
+        elif choice == "pt-BR":
+            config.INPUT_LANGUAGE_NAME_FOR_PROMPT = "pt-BR"
             config.SCRIBE_LANGUAGE_CODE = "pt"
         
-        print(f"GUI: Input Language Changed: {choice}")
         self.save_current_settings_to_config()
     
     def on_output_language_change(self, choice):
         """Handle output language selection change."""
-        if choice == "English":
-            config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT = "English"
-        elif choice == "Portuguese":
-            config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT = "Portuguese"
+        if choice == "en-US":
+            config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT = "en-US"
+        elif choice == "pt-BR":
+            config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT = "pt-BR"
         
-        print(f"GUI: Output Language Changed: {choice}")
         self.save_current_settings_to_config()
 
     def on_input_device_change(self, choice):
         """Handle input device selection change."""
         config.PYAUDIO_INPUT_DEVICE_INDEX = self.input_device_map.get(choice)
-        print(f"GUI: Selected Input Device: {choice} -> Index {config.PYAUDIO_INPUT_DEVICE_INDEX}")
         self.save_current_settings_to_config()
 
     def on_output_device_change(self, choice):
         """Handle output device selection change."""
         config.PYAUDIO_OUTPUT_DEVICE_NAME = self.output_device_map.get(choice)
-        print(f"GUI: Selected Output Device: {choice} -> Name {config.PYAUDIO_OUTPUT_DEVICE_NAME}")
         # Re-initialize pygame mixer if it was already initialized, to use new device
         if app_globals.pygame_mixer_initialized.is_set():
             pygame.mixer.quit()
             app_globals.pygame_mixer_initialized.clear()
-            # The core logic will re-initialize it when needed
-            print("GUI: Pygame mixer will re-initialize with new device on next playback.")
         self.save_current_settings_to_config()
     
     def on_tts_output_change(self):
         """Handle TTS output toggle change."""
         config.TTS_OUTPUT_ENABLED = self.tts_output_var.get()
-        print(f"GUI: TTS Output Enabled: {config.TTS_OUTPUT_ENABLED}")
         self.save_current_settings_to_config()
     
     def on_voice_change(self, choice):
         """Handle voice selection change."""
         voice_id = self.voice_mapping.get(choice, config.DEFAULT_VOICE_ID)
         config.ELEVENLABS_VOICE_ID = voice_id
-        print(f"GUI: Voice Changed: {choice} -> ID {voice_id}")
         self.save_current_settings_to_config()
 
     def save_current_settings_to_config(self):
@@ -439,7 +408,6 @@ class App(customtkinter.CTk):
         
         # Save to file
         config_loader.save_app_config(app_config)
-        print("GUI: Settings saved to app_config.json")
 
     def update_speaking_status(self, is_speaking: bool):
         """Update the speaking status indicator."""
@@ -477,47 +445,41 @@ class App(customtkinter.CTk):
             self.translation_textbox.configure(state="disabled")
 
     def apply_config_from_gui(self):
-        """Apply current GUI settings to the config."""
-        # Languages
+        """Apply GUI settings to the configuration."""
         in_lang = self.input_language_var.get()
         out_lang = self.output_language_var.get()
 
-        if in_lang == "English":
-            config.INPUT_LANGUAGE_NAME_FOR_PROMPT = "English"
+        if in_lang == "en-US":
+            config.INPUT_LANGUAGE_NAME_FOR_PROMPT = "en-US"
             config.SCRIBE_LANGUAGE_CODE = "en"
-        elif in_lang == "Portuguese":
-            config.INPUT_LANGUAGE_NAME_FOR_PROMPT = "Portuguese"
+        elif in_lang == "pt-BR":
+            config.INPUT_LANGUAGE_NAME_FOR_PROMPT = "pt-BR"
             config.SCRIBE_LANGUAGE_CODE = "pt"
         
-        if out_lang == "English":
-            config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT = "English"
-        elif out_lang == "Portuguese":
-            config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT = "Portuguese"
+        if out_lang == "en-US":
+            config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT = "en-US"
+            config.TTS_LANGUAGE_CODE = "en"
+        elif out_lang == "pt-BR":
+            config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT = "pt-BR"
+            config.TTS_LANGUAGE_CODE = "pt"
         
-        print(f"GUI: Config Applied - Input Lang: {config.INPUT_LANGUAGE_NAME_FOR_PROMPT} ({config.SCRIBE_LANGUAGE_CODE}), Output Lang: {config.OUTPUT_LANGUAGE_NAME_FOR_PROMPT}")
-        
-        # Save all current settings to config file
         self.save_current_settings_to_config()
         
         # Devices (already set by on_..._change methods, but ensure they are current)
         config.PYAUDIO_INPUT_DEVICE_INDEX = self.input_device_map.get(self.input_device_var.get())
         config.PYAUDIO_OUTPUT_DEVICE_NAME = self.output_device_map.get(self.output_device_var.get())
-        print(f"GUI: Config Applied - Input Device Index: {config.PYAUDIO_INPUT_DEVICE_INDEX}, Output Device Name: {config.PYAUDIO_OUTPUT_DEVICE_NAME}")
 
     def start_translation_session(self):
         """Start the translation session."""
-        print("GUI: Start button clicked")
         self.apply_config_from_gui()
 
         if not config.AZ_OPENAI_ENDPOINT or not config.AZ_OPENAI_KEY:
             self.update_speaking_status(False)
             self.speaking_status_var.set("Error: Azure credentials missing!")
-            print("❌ CRITICAL: Azure OpenAI endpoint or key not configured.")
             return
         if not config.ELEVENLABS_API_KEY:
             self.update_speaking_status(False)
             self.speaking_status_var.set("Error: ElevenLabs API key missing!")
-            print("❌ CRITICAL: ElevenLabs API key not configured.")
             return
 
         self.start_button.configure(state="disabled")
@@ -555,12 +517,9 @@ class App(customtkinter.CTk):
 
     def _run_core_logic(self):
         """Core logic thread function that runs the main processing pipeline."""
-        print("GUI Core Logic Thread: Started")
-        # Initialize Pygame mixer with selected device (or default)
         app_globals.initialize_pygame_mixer_if_needed()
 
         # --- Start Worker Threads ---
-        print("🧵 Starting worker threads from GUI...")
         self.periodic_scribe_thread = threading.Thread(target=periodic_scribe_transcription_worker_new, daemon=True)
         self.periodic_scribe_thread.start()
 
@@ -576,7 +535,6 @@ class App(customtkinter.CTk):
         # --- PyAudio Setup ---
         self.p_audio = pyaudio.PyAudio()
         try:
-            print(f"Attempting to open PyAudio stream with device index: {config.PYAUDIO_INPUT_DEVICE_INDEX}")
             self.stream = self.p_audio.open(
                 format=config.PYAUDIO_FORMAT,
                 channels=config.PYAUDIO_CHANNELS,
@@ -587,15 +545,12 @@ class App(customtkinter.CTk):
                 stream_callback=pyaudio_callback_new
             )
             self.stream.start_stream()
-            print("🎤 PyAudio Stream Started via GUI.")
         except Exception as e:
-            print(f"❌ PYAUDIO_ERROR (GUI): Failed to open or start stream: {e}")
             app_globals.schedule_gui_update("speaking_status_text", f"Error: PyAudio failed: {e}")
             app_globals.done.set() # Signal stop
 
         # --- WebSocket Setup ---
         if not app_globals.done.is_set():
-            print(f"🔌 Connecting to WebSocket via GUI: {config.WS_URL}")
             ws_header = {"api-key": config.AZ_OPENAI_KEY}
             
             app_globals.ws_instance_global = websocket.WebSocketApp(
@@ -614,11 +569,9 @@ class App(customtkinter.CTk):
             while not app_globals.done.is_set():
                 time.sleep(0.5)
         except Exception as e:
-            print(f"Error in GUI core logic loop: {e}")
+            pass
         finally:
-            print("\n🧼 GUI Core Logic: Starting resource cleanup...")
             self._cleanup_resources()
-            print("GUI Core Logic Thread: Finished")
             # Schedule GUI elements to be re-enabled on the main thread
             if app_globals.gui_app_instance:
                 app_globals.gui_app_instance.after(0, self.reset_gui_after_stop)
@@ -628,29 +581,21 @@ class App(customtkinter.CTk):
         app_globals.audio_capture_active.clear()
 
         if app_globals.ws_instance_global and app_globals.ws_instance_global.sock:
-            print("GUI: Closing WebSocket...")
             app_globals.ws_instance_global.close()
         
         if self.ws_thread and self.ws_thread.is_alive():
-            print("⏳ GUI: VAD WebSocket Thread: Waiting for shutdown...")
             self.ws_thread.join(timeout=2) # Shorter timeout for GUI
-            if self.ws_thread.is_alive(): print("⚠️ GUI: VAD WebSocket Thread: Shutdown timeout.")
-            else: print("✅ GUI: VAD WebSocket Thread: Shutdown complete.")
 
         if self.stream:
             if self.stream.is_active():
-                print("🔇 GUI: PyAudio: Stopping stream...")
                 self.stream.stop_stream()
-            print("🚪 GUI: PyAudio: Closing stream...")
             self.stream.close()
         if self.p_audio:
-            print("🎧 GUI: PyAudio: Terminating...")
             self.p_audio.terminate()
             self.p_audio = None
             self.stream = None
 
         # Signal worker threads to stop by putting None in their input queues
-        print("⏳ GUI: Signaling worker threads for shutdown...")
         app_globals.scribe_to_translator_llm_queue.put(None) 
 
         threads_to_join = [
@@ -662,15 +607,10 @@ class App(customtkinter.CTk):
 
         for thread, name in threads_to_join:
             if thread and thread.is_alive():
-                print(f"⏳ GUI: {name} Worker: Waiting for shutdown...")
                 thread.join(timeout=5)
-                if thread.is_alive(): print(f"⚠️ GUI: {name} Worker: Shutdown timeout.")
-                else: print(f"✅ GUI: {name} Worker: Shutdown complete.")
-            else: print(f"ℹ️ GUI: {name} Worker: Already stopped or not started.")
 
     def stop_translation_session(self):
         """Stop the translation session."""
-        print("GUI: Stop button clicked")
         app_globals.done.set() # Signal all threads and loops to stop
 
     def reset_gui_after_stop(self):
@@ -686,17 +626,12 @@ class App(customtkinter.CTk):
         self.config_button.configure(state="normal")
         self.update_speaking_status(False)
         self.speaking_status_var.set("Status: Stopped")
-        print("GUI: Interface reset after stop.")
 
     def on_closing(self):
         """Handle window close event."""
-        print("GUI: Closing application window...")
         if self.core_logic_thread and self.core_logic_thread.is_alive():
-            print("GUI: Signaling core logic to stop due to window close...")
             app_globals.done.set()
             self.core_logic_thread.join(timeout=10) # Wait for core logic to clean up
-            if self.core_logic_thread.is_alive():
-                print("⚠️ GUI: Core logic thread did not stop in time during window close.")
         
         if pygame.mixer.get_init():
             pygame.mixer.quit()

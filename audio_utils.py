@@ -158,13 +158,14 @@ def generate_audio_elevenlabs(text: str, segment_id: int) -> bytes | None:
             voice_id=config.ELEVENLABS_VOICE_ID,
             text=text,
             model_id=config.ELEVENLABS_MODEL_ID,
-            output_format=config.ELEVENLABS_OUTPUT_FORMAT, # Use configured output format
+            output_format=config.ELEVENLABS_OUTPUT_FORMAT,  # Use configured output format
+            language_code=config.TTS_LANGUAGE_CODE,  # Use TTS_LANGUAGE_CODE for TTS language
             voice_settings=VoiceSettings(
                 stability=0.7,
                 similarity_boost=0.7,
-                style=0.0, # Adjust if style exaggeration is needed
+                style=0.0,  # Adjust if style exaggeration is needed
                 use_speaker_boost=True,
-                speed=1.1 # Slightly faster for real-time feel
+                speed=1.1  # Slightly faster for real-time feel
             )
         )
         

@@ -15,9 +15,10 @@ DEFAULT_ENV_CONFIG = {
 
 # Default user-configurable settings
 DEFAULT_APP_CONFIG = {
-    "INPUT_LANGUAGE_NAME_FOR_PROMPT": "English",
-    "OUTPUT_LANGUAGE_NAME_FOR_PROMPT": "Portuguese",
+    "INPUT_LANGUAGE_NAME_FOR_PROMPT": "en-US",  # Updated default for English
+    "OUTPUT_LANGUAGE_NAME_FOR_PROMPT": "pt-BR",  # Updated default for Portuguese
     "SCRIBE_LANGUAGE_CODE": "en",
+    "TTS_LANGUAGE_CODE": "pt",  # Default TTS language code
     "TTS_OUTPUT_ENABLED": True,
     "ELEVENLABS_VOICE_ID": "CwhRBWXzGAHq8TQ4Fs17",  # Default voice ID (Marcos)
     "PYAUDIO_INPUT_DEVICE_INDEX": None,
