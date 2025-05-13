@@ -14,7 +14,7 @@ ELEVENLABS_API_KEY = ""
 
 # --- Additional API Configuration with defaults ---
 AZ_TRANSLATOR_LLM_DEPLOYMENT_NAME = "gpt-4.1-mini"
-ELEVENLABS_OPTIMIZE_STREAMING_LATENCY = 0
+ELEVENLABS_OPTIMIZE_STREAMING_LATENCY = 1
 # Default voice ID (Marcos)
 DEFAULT_VOICE_ID = "CwhRBWXzGAHq8TQ4Fs17"
 ELEVENLABS_VOICE_ID = DEFAULT_VOICE_ID  # Will be updated from app_config.json
