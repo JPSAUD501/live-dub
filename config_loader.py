@@ -10,8 +10,7 @@ APP_CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'app_
 DEFAULT_ENV_CONFIG = {
     "AZ_OPENAI_ENDPOINT": "",
     "AZ_OPENAI_KEY": "",
-    "ELEVENLABS_API_KEY": "",
-    "ELEVENLABS_VOICE_ID": ""
+    "ELEVENLABS_API_KEY": ""
 }
 
 # Default user-configurable settings
@@ -20,6 +19,7 @@ DEFAULT_APP_CONFIG = {
     "OUTPUT_LANGUAGE_NAME_FOR_PROMPT": "Portuguese",
     "SCRIBE_LANGUAGE_CODE": "en",
     "TTS_OUTPUT_ENABLED": True,
+    "ELEVENLABS_VOICE_ID": "CwhRBWXzGAHq8TQ4Fs17",  # Default voice ID (Marcos)
     "PYAUDIO_INPUT_DEVICE_INDEX": None,
     "PYAUDIO_OUTPUT_DEVICE_NAME": None
 }

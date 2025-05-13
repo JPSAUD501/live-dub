@@ -11,11 +11,13 @@ ELEVENLABS_OUTPUT_FORMAT = "pcm_16000"
 AZ_OPENAI_ENDPOINT = ""
 AZ_OPENAI_KEY = ""
 ELEVENLABS_API_KEY = ""
-ELEVENLABS_VOICE_ID = ""
 
 # --- Additional API Configuration with defaults ---
 AZ_TRANSLATOR_LLM_DEPLOYMENT_NAME = "gpt-4.1-mini"
 ELEVENLABS_OPTIMIZE_STREAMING_LATENCY = 0
+# Default voice ID (Marcos)
+DEFAULT_VOICE_ID = "CwhRBWXzGAHq8TQ4Fs17"
+ELEVENLABS_VOICE_ID = DEFAULT_VOICE_ID  # Will be updated from app_config.json
 
 # --- Application Configurations (fixed, not editable through GUI) ---
 INPUT_LANGUAGE_NAME_FOR_PROMPT = "English"

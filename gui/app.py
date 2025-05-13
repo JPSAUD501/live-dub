@@ -105,15 +105,29 @@ class App(customtkinter.CTk):
         )
         self.output_lang_combo.grid(row=0, column=3, padx=5, pady=5, sticky="ew")
 
+        # Voice Selection
+        customtkinter.CTkLabel(self.controls_frame, text="Voice:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        self.voice_var = tk.StringVar(value="Marcos")
+        self.voice_mapping = {
+            "Marcos": "CwhRBWXzGAHq8TQ4Fs17"
+        }
+        self.voice_combo = customtkinter.CTkComboBox(
+            self.controls_frame,
+            variable=self.voice_var,
+            values=list(self.voice_mapping.keys()),
+            command=self.on_voice_change
+        )
+        self.voice_combo.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+
         # Input Device
-        customtkinter.CTkLabel(self.controls_frame, text="Input Device (Mic):").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        customtkinter.CTkLabel(self.controls_frame, text="Input Device (Mic):").grid(row=1, column=2, padx=5, pady=5, sticky="w")
         self.input_device_combo = customtkinter.CTkComboBox(self.controls_frame, variable=self.input_device_var, command=self.on_input_device_change)
-        self.input_device_combo.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        self.input_device_combo.grid(row=1, column=3, padx=5, pady=5, sticky="ew")
 
         # Output Device
-        customtkinter.CTkLabel(self.controls_frame, text="Output Device (Speaker):").grid(row=1, column=2, padx=5, pady=5, sticky="w")
+        customtkinter.CTkLabel(self.controls_frame, text="Output Device (Speaker):").grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.output_device_combo = customtkinter.CTkComboBox(self.controls_frame, variable=self.output_device_var, command=self.on_output_device_change)
-        self.output_device_combo.grid(row=1, column=3, padx=5, pady=5, sticky="ew")
+        self.output_device_combo.grid(row=2, column=1, columnspan=3, padx=5, pady=5, sticky="ew")
 
         # TTS Output Toggle
         self.tts_output_var = tk.BooleanVar(value=config.TTS_OUTPUT_ENABLED)
@@ -121,7 +135,7 @@ class App(customtkinter.CTk):
             self.controls_frame, text="Enable TTS Output", 
             variable=self.tts_output_var, command=self.on_tts_output_change
         )
-        self.tts_output_cb.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="w")
+        self.tts_output_cb.grid(row=3, column=0, columnspan=2, padx=5, pady=5, sticky="w")
 
     def _setup_status_action_frame(self):
         """Setup the status and action buttons frame."""
@@ -177,6 +191,13 @@ class App(customtkinter.CTk):
             
         # Set TTS output checkbox
         self.tts_output_var.set(config.TTS_OUTPUT_ENABLED)
+        
+        # Set voice dropdown
+        voice_id = config.ELEVENLABS_VOICE_ID
+        for name, id in self.voice_mapping.items():
+            if id == voice_id:
+                self.voice_var.set(name)
+                break
 
     def _get_pygame_output_devices(self) -> tuple[str, ...]:
         """Get available output devices from Pygame."""
@@ -277,6 +298,13 @@ class App(customtkinter.CTk):
         print(f"GUI: TTS Output Enabled: {config.TTS_OUTPUT_ENABLED}")
         self.save_current_settings_to_config()
     
+    def on_voice_change(self, choice):
+        """Handle voice selection change."""
+        voice_id = self.voice_mapping.get(choice, config.DEFAULT_VOICE_ID)
+        config.ELEVENLABS_VOICE_ID = voice_id
+        print(f"GUI: Voice Changed: {choice} -> ID {voice_id}")
+        self.save_current_settings_to_config()
+
     def save_current_settings_to_config(self):
         """Save current GUI settings to app_config.json."""
         app_config = config_loader.load_app_config()
@@ -288,6 +316,9 @@ class App(customtkinter.CTk):
         
         # TTS setting
         app_config["TTS_OUTPUT_ENABLED"] = config.TTS_OUTPUT_ENABLED
+        
+        # Voice setting
+        app_config["ELEVENLABS_VOICE_ID"] = config.ELEVENLABS_VOICE_ID
         
         # Device settings
         app_config["PYAUDIO_INPUT_DEVICE_INDEX"] = config.PYAUDIO_INPUT_DEVICE_INDEX
@@ -455,7 +486,7 @@ class App(customtkinter.CTk):
                 on_open=on_ws_open_new,
                 on_message=on_ws_message_new,
                 on_error=on_ws_error_new,
-                on_close=on_ws_close_new # This will set app_globals.done on close
+                on_ws_close=on_ws_close_new # This will set app_globals.done on close
             )
             self.ws_thread = threading.Thread(target=app_globals.ws_instance_global.run_forever, daemon=True)
             self.ws_thread.start()
